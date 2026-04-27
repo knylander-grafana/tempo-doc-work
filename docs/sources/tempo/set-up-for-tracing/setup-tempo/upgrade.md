@@ -163,6 +163,25 @@ The default values for several live-store and query-frontend settings have been 
 
 If you explicitly set these values in your configuration, no action is needed.
 
+### `partition_ring_live_store` removed
+
+The root `partition_ring_live_store` configuration option has been removed in Tempo 3.0. [[PR 6981](https://github.com/grafana/tempo/pull/6981)]
+
+If your configuration contains `partition_ring_live_store`, remove it before you upgrade. Tempo 3.0 uses a single partition ring for live-store ownership, so this option is no longer needed.
+
+Before:
+
+```yaml
+stream_over_http_enabled: true
+partition_ring_live_store: true
+```
+
+After:
+
+```yaml
+stream_over_http_enabled: true
+```
+
 ## Upgrade to Tempo 2.10
 
 When upgrading to Tempo 2.10, be aware of these considerations and breaking changes.
