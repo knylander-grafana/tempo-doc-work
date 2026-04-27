@@ -20,6 +20,7 @@ To set up Tempo using Kubernetes with Tanka, you need to:
 1. Install libraries
 1. Deploy MinIO object storage
 1. Optional: Enable metrics-generator
+1. Optional: Enable KEDA autoscaling
 1. Deploy Tempo with the Tanka command
 
 {{< admonition type="note" >}}
@@ -396,6 +397,72 @@ To change the resources requirements, follow these steps:
 {{< admonition type="note" >}}
 Lowering these requirements can impact overall performance.
 {{< /admonition >}}
+
+### Optional: Enable KEDA autoscaling
+
+Tempo 3.0 and later includes KEDA-based horizontal pod autoscaling in the microservices Jsonnet library.
+KEDA autoscaling is disabled by default and requires the KEDA operator and CRDs to be installed in your Kubernetes cluster.
+
+The Tempo Jsonnet library can create KEDA `ScaledObject` resources for the distributor, metrics-generator, backend-worker, and block-builder.
+When KEDA is enabled for a component, KEDA controls the replica count for that component.
+The distributor and metrics-generator use CPU-based scaling, the backend-worker uses a Prometheus trigger based on outstanding compaction blocks, and the block-builder uses the KEDA `kubernetes-workload` scaler to match live-store zone-a pods.
+
+Add `keda` configuration to the component blocks in `_config` in `environments/tempo/main.jsonnet`.
+For example:
+
+```jsonnet
+_config+:: {
+    distributor+: {
+        keda+: {
+            enabled: true,
+            min_replicas: 3,
+            max_replicas: 30,
+            target_cpu: '330m',
+        },
+    },
+
+    metrics_generator+: {
+        keda+: {
+            enabled: true,
+            min_replicas: 1,
+            max_replicas: 20,
+            target_cpu: '500m',
+        },
+    },
+
+    backend_worker+: {
+        keda+: {
+            enabled: true,
+            min_replicas: 3,
+            max_replicas: 50,
+            prometheus_address: 'http://prometheus-server.monitoring.svc.cluster.local:9090',
+            threshold: 200,
+        },
+    },
+
+    block_builder+: {
+        keda+: {
+            enabled: true,
+            min_replicas: 1,
+            max_replicas: 30,
+            partitions_per_instance: 1,
+            pod_selector: 'name=live-store-zone-a',
+        },
+    },
+},
+```
+
+The following table describes the main KEDA defaults.
+
+| Component | Trigger | Default minimum replicas | Default maximum replicas | Other default values |
+| --- | --- | --- | --- | --- |
+| Distributor | CPU average value | `2` | `200` | `enabled: false`, `paused_replicas: 0`, `target_cpu: '330m'` |
+| Metrics-generator | CPU average value | `1` | `200` | `enabled: false`, `paused_replicas: 0`, `target_cpu: '500m'` |
+| Backend-worker | Prometheus | `3` | `200` | `enabled: false`, `paused_replicas: 0`, `prometheus_address: ''`, `threshold: 200` |
+| Block-builder | Kubernetes workload | `1` | `200` | `enabled: false`, `paused_replicas: 0`, `partitions_per_instance: 1`, `pod_selector: 'name=live-store-zone-a'` |
+
+If you enable backend-worker autoscaling, set `backend_worker.keda.prometheus_address` to the URL of a Prometheus-compatible server.
+If you enable block-builder autoscaling, the Jsonnet library sets `block_builder.partitions_per_instance` in the generated Tempo configuration to match `block_builder.keda.partitions_per_instance`.
 
 ## Deploy Tempo using Tanka
 
