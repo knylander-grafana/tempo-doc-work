@@ -23,6 +23,26 @@ RED metrics are a standardized format for monitoring microservices, where R stan
 
 The [Tempo mixin](#dashboards) provides several dashboards using these metrics.
 
+#### Live-store lagged requests
+
+Use `tempo_live_store_lagged_requests_total` to detect recent-data requests that overlap with live-store Kafka lag.
+The counter increments when the live-store can't guarantee complete results for the requested end time.
+This metric is available in Tempo 3.0 and later.
+
+The metric has a `route` label that identifies the query path:
+
+- `/tempopb.Querier/SearchRecent` for recent TraceQL search requests.
+- `/tempopb.Metrics/QueryRange` for TraceQL metrics range queries.
+
+Compare this metric with Kafka consumer lag and live-store partition lag metrics.
+For example, use this query to find lagged requests by route:
+
+```promql
+sum by (route) (rate(tempo_live_store_lagged_requests_total[5m]))
+```
+
+If the rate is greater than zero, recent search or metrics query results might be incomplete unless `live_store.fail_on_high_lag` is enabled and the request returns an error instead.
+
 #### Query frontend inspected bytes
 
 Use `tempo_query_frontend_bytes_inspected_total` to monitor how many bytes the query frontend reads from disk and object storage.

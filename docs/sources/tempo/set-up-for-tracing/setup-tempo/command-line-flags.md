@@ -67,6 +67,23 @@ Refer to the [Plan your Tempo deployment](../plan/) documentation for informatio
 | `--enable-go-runtime-metrics` | Set to true to enable all Go runtime metrics | `false` |
 | `--shutdown-delay` | How long to wait between SIGTERM and shutdown. After receiving SIGTERM, Tempo reports not-ready status via the `/ready` endpoint. | `0` |
 
+## Tracing and profiling
+
+Tempo can export OpenTelemetry traces from its own components. Span profiling adds Pyroscope pprof labels to those spans so you can correlate Tempo traces with profiles.
+
+| Flag | Description | Default |
+| --- | --- | --- |
+| `--span-profiling` | Set to true to enable Pyroscope pprof labels on OpenTelemetry spans | `false` |
+
+To use span profiling, configure OpenTelemetry tracing with `OTEL_EXPORTER_OTLP_ENDPOINT` or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, and then enable span profiling:
+
+```bash
+tempo --config.file=/etc/tempo/config.yaml \
+  --span-profiling
+```
+
+You can also set `span_profiling: true` in the Tempo configuration file. This option is available in Tempo 3.0 and later.
+
 ## Health check
 
 | Flag | Description | Default |

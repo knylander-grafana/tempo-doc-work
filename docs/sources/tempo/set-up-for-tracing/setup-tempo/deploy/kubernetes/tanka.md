@@ -368,6 +368,69 @@ storage+: {
 Enabling metrics generation and remote writing them to Grafana Cloud Metrics produces extra active series that could potentially impact your billing. For more information on billing, refer to [Billing and usage](/docs/grafana-cloud/billing-and-usage/). For more information on metrics generation, refer the [Metrics-generator documentation](/docs/tempo/<TEMPO_VERSION>/metrics-from-traces/metrics-generator/).
 {{< /admonition >}}
 
+### Optional: Enable KEDA autoscaling
+
+The microservices Jsonnet library supports disabled-by-default KEDA autoscaling for selected Tempo components.
+Use this option when your Kubernetes cluster has the KEDA operator and CRDs installed and you want autoscaling behavior generated with the Tempo manifests.
+KEDA autoscaling support is available in Tempo 3.0 and later.
+
+Enable autoscaling in the `_config` block of `environments/tempo/main.jsonnet`.
+The supported scalers are:
+
+- Distributor CPU.
+- Metrics-generator CPU.
+- Backend-worker Prometheus query for outstanding compaction blocks.
+- Block-builder Kubernetes workload scaler that matches live-store zone-a pods.
+
+For example:
+
+```jsonnet
+local tempo = import 'microservices/tempo.libsonnet';
+
+tempo {
+  _config+:: {
+    distributor+: {
+      keda+: {
+        enabled: true,
+        min_replicas: 3,
+        max_replicas: 50,
+        target_cpu: '330m',
+      },
+    },
+    metrics_generator+: {
+      keda+: {
+        enabled: true,
+        min_replicas: 1,
+        max_replicas: 20,
+        target_cpu: '500m',
+      },
+    },
+    backend_worker+: {
+      keda+: {
+        enabled: true,
+        min_replicas: 3,
+        max_replicas: 50,
+        prometheus_address: 'http://mimir-nginx.mimir.svc:80/prometheus',
+        threshold: 200,
+      },
+    },
+    block_builder+: {
+      keda+: {
+        enabled: true,
+        min_replicas: 1,
+        max_replicas: 50,
+        partitions_per_instance: 1,
+        pod_selector: 'name=live-store-zone-a',
+      },
+    },
+  },
+}
+```
+
+When you enable KEDA for a component, the Jsonnet library removes the static replica count from that component so KEDA can manage replicas.
+For backend-worker autoscaling, set `backend_worker.keda.prometheus_address`; the library requires this field because the scaler queries Prometheus for `tempodb_compaction_outstanding_blocks`.
+For block-builder autoscaling, keep `block_builder.keda.partitions_per_instance` greater than `0`.
+
 ### Optional: Reduce component system requirements
 
 Smaller ingestion and query volumes could allow the use of smaller resources. If you wish to lower the resources allocated to components, then you can do this via a container configuration. For example, to change the CPU and memory resource allocation for the block-builders or live-stores.

@@ -128,7 +128,7 @@ For the complete mapping of all configuration blocks to deployment modes, refer 
 Tempo uses the server from `dskit/server`. For the full list of available server options, refer to the [dskit server configuration](https://github.com/grafana/dskit/blob/main/server/server.go#L66) and the [manifest](/docs/tempo/<TEMPO_VERSION>/configuration/manifest/).
 For details on how server settings apply across deployment modes, refer to the [Deployment modes](/docs/tempo/<TEMPO_VERSION>/reference-tempo-architecture/deployment-modes/) documentation.
 
-Additional root-level options such as `target`, `shutdown_delay`, `auth_enabled`, and `enable_go_runtime_metrics` are available as [command-line flags](/docs/tempo/<TEMPO_VERSION>/set-up-for-tracing/setup-tempo/command-line-flags/).
+Additional root-level options such as `target`, `shutdown_delay`, `auth_enabled`, `enable_go_runtime_metrics`, and `span_profiling` are available as [command-line flags](/docs/tempo/<TEMPO_VERSION>/set-up-for-tracing/setup-tempo/command-line-flags/).
 
 ```yaml
 # Optional. Setting to true enables multitenancy and requires X-Scope-OrgID header on all requests.
@@ -139,6 +139,10 @@ Additional root-level options such as `target`, `shutdown_delay`, `auth_enabled`
 
 # Optional. Enables streaming query results over HTTP.
 [stream_over_http_enabled: <bool> | default = false]
+
+# Optional. Enables Pyroscope span profiling labels on OpenTelemetry spans.
+# Requires OpenTelemetry tracing to be configured.
+[span_profiling: <bool> | default = false]
 
 server:
     # HTTP server listen host
@@ -915,6 +919,11 @@ query_frontend:
     # 0 disables this cutoff.
     # (default: 0)
     [query_end_cutoff: <duration>]
+
+    # Deprecated. This setting is ignored and will be removed in a future release.
+    # Non-metrics query paths query all blocks regardless of replication factor.
+    # Use only to keep older configuration files parseable while you remove the field.
+    [rf1_after: <time>]
 
     # A list of regular expressions for refusing matching requests, these will apply for every request regardless of the endpoint.
     [url_deny_list: <list of strings> | default = <empty list>]
