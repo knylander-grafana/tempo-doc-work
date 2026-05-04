@@ -163,6 +163,23 @@ The default values for several live-store and query-frontend settings have been 
 
 If you explicitly set these values in your configuration, no action is needed.
 
+### Querying stores with mixed RF3 and RF1 blocks
+
+Tempo 3.0.0 restores `query_frontend.rf1_after` for clusters that have both RF3 blocks and RF1 metrics-generator blocks. [[PR 7078](https://github.com/grafana/tempo/pull/7078)]
+Configure `rf1_after` when your backend store contains RF3 blocks created before a known cutover time and RF1 blocks created after that time.
+Tempo uses the value for search, tag, and trace-by-ID query paths to select RF3 blocks before the cutover and RF1 blocks after the cutover.
+
+Set `rf1_after` to the RFC3339 timestamp when your cluster started writing RF1 blocks:
+
+```yaml
+query_frontend:
+  rf1_after: "2026-04-27T13:00:00Z"
+```
+
+If `rf1_after` is unset, Tempo searches only RF3 blocks, which use the default replication factor.
+You can override the configured value for specific search, tag, and trace-by-ID requests with the `rf1After` query parameter.
+The query parameter also uses an RFC3339 timestamp, for example, `rf1After=2026-04-27T13:00:00Z`.
+
 ## Upgrade to Tempo 2.10
 
 When upgrading to Tempo 2.10, be aware of these considerations and breaking changes.

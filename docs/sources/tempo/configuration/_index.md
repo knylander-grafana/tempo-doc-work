@@ -20,6 +20,7 @@ The Tempo configuration options include:
   - [Deployment modes](#deployment-modes)
     - [Configuration by deployment mode](#configuration-by-deployment-mode)
   - [Server](#server)
+  - [Internal server](#internal-server)
   - [Memory](#memory)
   - [Distributor](#distributor)
     - [Set max attribute size to help control out of memory errors](#set-max-attribute-size-to-help-control-out-of-memory-errors)
@@ -125,8 +126,10 @@ For the complete mapping of all configuration blocks to deployment modes, refer 
 
 ## Server
 
-Tempo uses the server from `dskit/server`. For the full list of available server options, refer to the [dskit server configuration](https://github.com/grafana/dskit/blob/main/server/server.go#L66) and the [manifest](/docs/tempo/<TEMPO_VERSION>/configuration/manifest/).
+Tempo uses the server from `dskit/server`.
+For the full list of available server options, refer to the [dskit server configuration](https://github.com/grafana/dskit/blob/main/server/server.go#L66) and the [manifest](/docs/tempo/<TEMPO_VERSION>/configuration/manifest/).
 For details on how server settings apply across deployment modes, refer to the [Deployment modes](/docs/tempo/<TEMPO_VERSION>/reference-tempo-architecture/deployment-modes/) documentation.
+The gRPC buffer options in this section are available in Tempo 3.0 and later.
 
 Additional root-level options such as `target`, `shutdown_delay`, `auth_enabled`, and `enable_go_runtime_metrics` are available as [command-line flags](/docs/tempo/<TEMPO_VERSION>/set-up-for-tracing/setup-tempo/command-line-flags/).
 
@@ -184,6 +187,57 @@ server:
     # Allow clients to send pings even when there are no active streams.
     # Tempo enables this by default to prevent GOAWAY errors during idle periods.
     [grpc_server_ping_without_stream_allowed: <bool> | default = true]
+
+    # Number of gRPC server workers. A value of 0 lets gRPC use its default behavior.
+    [grpc_server_num_workers: <int> | default = 0]
+
+    # Track request_message_bytes, response_message_bytes, and inflight_requests metrics.
+    [grpc_server_stats_tracking_enabled: <bool> | default = true]
+
+    # Deprecated. This option has no effect.
+    [grpc_server_recv_buffer_pools_enabled: <bool> | default = false]
+
+    # Size, in bytes, of the read buffer for each gRPC connection.
+    # Smaller values can reduce memory use, but might increase system calls.
+    [grpc_server_read_buffer_size: <int> | default = 32768]
+
+    # Size, in bytes, of the write buffer for each gRPC connection.
+    # Smaller values can reduce memory use, but might increase system calls.
+    [grpc_server_write_buffer_size: <int> | default = 32768]
+```
+
+## Internal server
+
+Tempo uses the internal server for internal HTTP and gRPC endpoints when you enable it.
+The internal server uses the same dskit server configuration model as the primary [server](#server), but some defaults differ.
+
+```yaml
+internal_server:
+    # Enable the internal server.
+    [enable: <bool> | default = false]
+
+    # HTTP internal server listen port.
+    [http_listen_port: <int> | default = 3101]
+
+    # gRPC internal server listen port. A value of 0 disables the gRPC listener.
+    [grpc_listen_port: <int> | default = 0]
+
+    # Number of gRPC server workers. A value of 0 lets gRPC use its default behavior.
+    [grpc_server_num_workers: <int> | default = 0]
+
+    # Track request_message_bytes, response_message_bytes, and inflight_requests metrics.
+    [grpc_server_stats_tracking_enabled: <bool> | default = false]
+
+    # Deprecated. This option has no effect.
+    [grpc_server_recv_buffer_pools_enabled: <bool> | default = false]
+
+    # Size, in bytes, of the read buffer for each gRPC connection.
+    # A value of 0 uses the gRPC library default.
+    [grpc_server_read_buffer_size: <int> | default = 0]
+
+    # Size, in bytes, of the write buffer for each gRPC connection.
+    # A value of 0 uses the gRPC library default.
+    [grpc_server_write_buffer_size: <int> | default = 0]
 ```
 
 ## Memory
@@ -1773,6 +1827,7 @@ storage:
 ## Memberlist
 
 [Memberlist](https://github.com/hashicorp/memberlist) is the default mechanism for all of the Tempo pieces to coordinate with each other.
+The `rejoin_seed_nodes` and `propagation_delay_tracker` options are available in Tempo 3.0 and later.
 
 ```yaml
 memberlist:
@@ -1815,6 +1870,7 @@ memberlist:
     # https://grafana.com/docs/mimir/latest/configure/about-dns-service-discovery/
     # for more details).
     # A "Headless" Cluster IP service in Kubernetes.
+    # You can provide values as a YAML list or as a comma-separated string.
     # Example:
     #   - gossip-ring.tracing.svc.cluster.local:7946
     [join_members: <list of string> | default = ]
@@ -1838,6 +1894,28 @@ memberlist:
     # resolves to all gossiping nodes (eg. Kubernetes headless service), then rejoin
     # is not needed.
     [rejoin_interval: <duration> | default = 0s]
+
+    # Seed nodes to use for periodic rejoin. This setting takes precedence over
+    # join_members when rejoin_interval is set. You can specify values multiple
+    # times or as a comma-separated list. Supports IP, hostname, and DNS Service
+    # Discovery formats.
+    [rejoin_seed_nodes: <string> | default = ""]
+
+    # EXPERIMENTAL
+    # Track how long memberlist gossip updates take to propagate.
+    propagation_delay_tracker:
+        # Enable the propagation delay tracker.
+        [enabled: <bool> | default = false]
+
+        # How often to publish propagation tracking beacons.
+        [beacon_interval: <duration> | default = 1m]
+
+        # How long a beacon lives before it is garbage collected.
+        [beacon_lifetime: <duration> | default = 10m]
+
+        # Log a warning when beacon propagation delay exceeds this threshold.
+        # A value of 0 disables latency warning logs.
+        [log_beacons_latency_longer_than: <duration> | default = 0s]
 
     # Timeout for leaving memberlist cluster.
     [leave_timeout: <duration> | default = 20s]
