@@ -37,6 +37,7 @@ When upgrading to Tempo 3.0, be aware of these breaking changes:
 - **Scalable monolithic mode (SSB) removed**: The `scalable-single-binary` target is no longer available. Migrate to either microservices or monolithic (`target: all`).
 - **New components**: Block-builders and live-stores replace ingesters. The compactor target has been removed.
 - **Configuration changes**: Remove `ingester`, `ingester_client`, and `compactor` configuration blocks. For microservices deployments, add `ingest.kafka` configuration. You can automate this using the [`tempo-cli migrate config` command](https://grafana.com/docs/tempo/<TEMPO_VERSION>/operations/tempo_cli/#migrate-config-command).
+- **Removed querier setting**: Remove `querier.query_live_store` from your configuration. Tempo fails to start if this field is present. [[PR 7048](https://github.com/grafana/tempo/pull/7048)]
 - **No downgrade path**: There is no supported downgrade path from 3.0 to 2.x.
 - **Deployment manifests**: Update Helm, Tanka, and other deployment manifests to include the new components and Kafka infrastructure.
 
@@ -162,6 +163,25 @@ The default values for several live-store and query-frontend settings have been 
 | `query_frontend.metrics.query_backend_after`     | `30m`            | `15m`       |
 
 If you explicitly set these values in your configuration, no action is needed.
+
+### `querier.query_live_store` removed
+
+The deprecated `querier.query_live_store` setting has been removed in Tempo 3.0.
+Tempo fails to start if this field remains in your configuration.
+Remove it before upgrading. [[PR 7048](https://github.com/grafana/tempo/pull/7048)]
+
+Before:
+
+```yaml
+querier:
+  query_live_store: true
+```
+
+After:
+
+```yaml
+querier: {}
+```
 
 ### Querying stores with mixed RF3 and RF1 blocks
 

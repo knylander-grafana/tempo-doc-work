@@ -970,6 +970,13 @@ query_frontend:
     # (default: 0)
     [query_end_cutoff: <duration>]
 
+    # RFC3339 timestamp that splits backend queries between RF3 and RF1 blocks.
+    # Blocks created before this time are queried with the default replication factor (RF3);
+    # blocks created after are queried as RF1.
+    # Use this when your store contains a mix of RF3 blocks written before the Tempo 3.0 cutover
+    # and RF1 blocks written after. Leave unset if all blocks use the same replication factor.
+    [rf1_after: <time>]
+
     # A list of regular expressions for refusing matching requests, these will apply for every request regardless of the endpoint.
     [url_deny_list: <list of strings> | default = <empty list>]
 
