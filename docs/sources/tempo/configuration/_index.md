@@ -946,6 +946,14 @@ query_frontend:
     # (default: 0)
     [api_timeout: <duration>]
 
+    # The maximum size in bytes of a response message returned over gRPC streaming calls.
+    # Diffs and final responses are segmented into packets of this size.
+    # This is separate from the process-wide gRPC server response size because downstream clients
+    # might need smaller streamed responses.
+    # Set to 0 to disable segmentation.
+    # (default: 2097152)
+    [max_grpc_streaming_packet_size: <int>]
+
     # Prevents querying incomplete recent data by excluding the most recent portion of the time range.
     # Useful when live-store data may not yet be fully available for querying.
     # 0 disables this cutoff.
