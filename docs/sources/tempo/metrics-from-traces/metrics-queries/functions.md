@@ -43,6 +43,8 @@ These can be added after a metrics query like:
 
 These functions can be added as an operator at the end of any TraceQL query.
 
+You can also use arithmetic operators between metrics query results in Tempo 3.0 and later. Wrap each metrics query in parentheses before combining it with `+`, `-`, `*`, or `/`.
+
 | Function                                                     | Description                                                                                        | Example                                                                         |
 | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | [`rate()`](#the-rate-functions)                              | Calculates the number of matching spans per second.                                                | `{ span:status = error } \| rate()`                                             |
@@ -56,6 +58,7 @@ These functions can be added as an operator at the end of any TraceQL query.
 | [`topk()`](#the-topk-function)                               | Returns only the top `k` results from a metrics query.                                             | `{ resource.service.name = "foo" } \| rate() by (span.http.url) \| topk(10)`    |
 | [`bottomk()`](#the-bottomk-function)                         | Returns only the bottom `k` results from a metrics query.                                          | `{ resource.service.name = "foo" } \| rate() by (span.http.url) \| bottomk(10)` |
 | [Comparison operators](#comparison-operators)                 | Filters metric data points that don't meet a threshold condition.                                  | `{ } \| rate() > 10`                                                            |
+| [Arithmetic operators](#arithmetic-operators)                 | Combines metrics query results with binary arithmetic.                                             | `({ span:status = error } \| rate()) / ({} \| rate())`                          |
 
 ### Group results with `by()`
 
@@ -253,6 +256,32 @@ This example evaluates the frequency distribution of span duration, grouped by H
 
 Multi-stage metrics queries are queries that turn your spans into metrics and then perform additional operations on those metrics.
 
+### Arithmetic operators
+
+Arithmetic operators let you combine TraceQL metrics query results. Use them to build ratios or differences, for example, the rate of error spans divided by the rate of all spans.
+
+The supported arithmetic operators are `+`, `-`, `*`, and `/`. Each side of the operation must be a metrics query wrapped in parentheses.
+
+For example, this query calculates an error-rate ratio:
+
+```traceql
+({ span:status = error } | rate()) / ({} | rate())
+```
+
+You can combine grouped and ungrouped metrics queries. This query calculates the error-rate ratio for each service:
+
+```traceql
+({ span:status = error } | rate() by (resource.service.name)) / ({} | rate())
+```
+
+You can also combine arithmetic with other multi-stage functions inside a parenthesized query:
+
+```traceql
+({} | rate() by (resource.service.name) | topk(10)) / ({} | rate())
+```
+
+Scalar arithmetic with numbers isn't supported. For example, `1000 * ({} | rate())` isn't valid.
+
 ### The `topk` function
 
 The `topk` function lets you aggregate and process TraceQL metrics by returning only the top `k` results.
@@ -316,7 +345,7 @@ The supported comparison operators are `>`, `>=`, `<`, `<=`, `=`, and `!=`.
 You can compare against integers, floats, and durations, for example, `1s` or `500ms`.
 
 {{< admonition type="note" >}}
-Comparison operators, `topk`, and `bottomk` aren't supported with the `compare()` function.
+Comparison operators, arithmetic operators, `topk`, and `bottomk` aren't supported with the `compare()` function.
 {{< /admonition >}}
 
 Data points that don't match the condition are removed from the results.

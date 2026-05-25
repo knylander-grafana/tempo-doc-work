@@ -120,7 +120,9 @@ The duration histogram measures elapsed time from job creation to completion, no
 The Tempo mixin ships a pre-built Grafana dashboard, **Tempo - Backend Work**, that covers:
 
 - Blocklist length and poll duration
-- Active, completed, failed, and retried job counts
+- Active, completed, failed, retried, and dropped job counts
+- Job duration by job type
+- Redaction jobs, including active jobs, created jobs, completed jobs, failed jobs, dropped jobs, and job duration
 - Compaction throughput (objects written, bytes written, blocks compacted)
 - Outstanding blocks per tenant
 - CPU and memory for both the backend scheduler and backend workers

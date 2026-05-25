@@ -81,7 +81,7 @@ TraceQL metrics queries currently include the following functions for aggregatin
 `histogram_over_time`, and `compare`.
 These functions can be added as an operator at the end of any TraceQL query.
 
-The `topk` and `bottomk` functions and comparison operators (`>`, `>=`, `<`, `<=`, `=`, `!=`) are supported on TraceQL metrics results.
+The `topk` and `bottomk` functions, comparison operators (`>`, `>=`, `<`, `<=`, `=`, `!=`), and arithmetic operators (`+`, `-`, `*`, `/`) are supported on TraceQL metrics results.
 
 For detailed information and example queries for each function, refer to [TraceQL metrics functions](ref:mq-functions).
 
@@ -106,27 +106,27 @@ Example:
 
 {{< docs/experimental product="Tempo" >}}
 
-In vParquet5, you can use an experimental span-only fetch layer to significantly improve performance for most metrics queries. This optimized read path processes individual spans instead of full traces, reducing latency and memory usage.
+In vParquet5, Tempo 3.0 and later enables the experimental span-only fetch layer by default for most metrics queries. This optimized read path processes individual spans instead of full traces, reducing latency and memory usage.
 
-You must enable the faster read path explicitly using a query hint or a per-tenant override. Once enabled, it applies to metrics queries that don't require knowledge of the full trace structure. Queries using structural operators like `>>`, `<<`, `~`, `!>>`, `!<<`, or `!~` still use the standard fetch layer.
+The faster read path applies to metrics queries that don't require knowledge of the full trace structure. Queries using structural operators like `>>`, `<<`, `~`, `!>>`, `!<<`, or `!~` still use the standard fetch layer.
 
-#### Enable with a query hint
+#### Disable with a per-tenant override
 
-Add the `spanonly_fetch=true` hint to your query. This hint requires [`unsafe_query_hints`](/docs/tempo/<TEMPO_VERSION>/configuration/#overrides) to be enabled for the tenant.
-
-```
-{ resource.service.name = "frontend" } | rate() by (status) with (spanonly_fetch=true)
-```
-
-#### Enable with a per-tenant override
-
-Operators can enable the faster read path by default for a tenant using the `metrics_spanonly_fetch` override. When set, it applies to all eligible metrics queries for that tenant without requiring a query hint. This override doesn't require `unsafe_query_hints`.
+Operators can disable the faster read path for a tenant using the `metrics_spanonly_fetch` override. This override doesn't require `unsafe_query_hints`.
 
 ```yaml
 overrides:
   'tenant-id':
     read:
-      metrics_spanonly_fetch: true
+      metrics_spanonly_fetch: false
 ```
 
-When `unsafe_query_hints` is also enabled for the tenant, the `spanonly_fetch` query hint takes precedence over the per-tenant override. Users can set `spanonly_fetch=false` to opt out, or `spanonly_fetch=true` to opt in even when the override is disabled.
+#### Disable with a query hint
+
+Add the `spanonly_fetch=false` hint to a query to disable the faster read path for that query. This hint requires [`unsafe_query_hints`](/docs/tempo/<TEMPO_VERSION>/configuration/#overrides) to be enabled for the tenant.
+
+```traceql
+{ resource.service.name = "frontend" } | rate() by (status) with (spanonly_fetch=false)
+```
+
+When `unsafe_query_hints` is enabled for the tenant, the `spanonly_fetch` query hint takes precedence over the per-tenant override. Users can set `spanonly_fetch=false` to opt out, or `spanonly_fetch=true` to opt in when the override disables the faster read path.

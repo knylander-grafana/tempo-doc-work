@@ -2309,7 +2309,8 @@ overrides:
       [unsafe_query_hints: <bool> | default = false]
 
       # Per-user toggle for the span-only fetch layer for TraceQL metrics queries.
-      # When not set, the default behavior is used. May be overridden by query hints.
+      # When not set, span-only fetch is enabled by default for eligible metrics queries.
+      # May be overridden by query hints.
       [metrics_spanonly_fetch: <bool>]
 
     # Compaction related overrides
