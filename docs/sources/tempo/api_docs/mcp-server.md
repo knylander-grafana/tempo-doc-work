@@ -45,6 +45,23 @@ The MCP server exposes the following tools that AI assistants can use to interac
 | `get-attribute-values`    | Get values for a specific scoped attribute name                         |
 | `docs-traceql`            | Retrieve TraceQL documentation (basic, aggregates, structural, metrics) |
 
+### `get-trace` response status
+
+The `get-trace` tool retrieves a trace by ID and returns the LLM-optimized JSON format used by the trace by ID API.
+The response includes a top-level `status` field with `COMPLETE` or `PARTIAL`.
+When the status is `PARTIAL`, the response includes a `message` field that explains why the returned trace is partial, for example, when the trace exceeds the maximum response size.
+
+```json
+{
+  "status": "PARTIAL",
+  "message": "Trace exceeds maximum size of 100 bytes, a partial trace is returned"
+}
+```
+
+Each span entry includes `status.code` and `status.message`.
+If a span doesn't set a status, `status.code` is `STATUS_CODE_UNSET` and `status.message` is empty.
+For more information, refer to the [Tempo 2.10 release notes](/docs/tempo/<TEMPO_VERSION>/release-notes/version-2/v2-10/#llm-optimized-api-responses).
+
 ## Available resources
 
 The MCP server also provides the following resources containing TraceQL documentation:

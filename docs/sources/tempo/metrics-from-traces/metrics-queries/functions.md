@@ -119,7 +119,8 @@ The `step` parameter defines the granularity of the returned time-series.
 For example, `step=15s` returns a data point every 15s within the time range.
 By default, `step` automatically chooses a dynamic value based on the query start time and end time.
 
-Any value used for `step` needs to include a duration value, such as `30s` for `s`econds or `1m` for `m`inutes.
+Use a positive duration value for `step`, such as `30s` for seconds or `1m` for minutes.
+Tempo rejects negative `step` values with a bad request.
 
 You can configure this parameter using Grafana Explore or using the Tempo API.
 
