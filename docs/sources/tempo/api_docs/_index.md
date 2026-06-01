@@ -667,7 +667,7 @@ Parameters:
 - `since = (duration string)`
   Optional. Can be used instead of `start` and `end` to define the time range in relative values. For example, `since=15m` queries the last 15 minutes. Default is the last 1 hour.
 - `step = (duration string)`
-  Optional. Defines the granularity of the returned time-series. For example, `step=15s` returns a data point every 15s within the time range. If not specified, then the default behavior chooses a dynamic step based on the time range.
+  Optional. Defines the granularity of the returned time-series. For example, `step=15s` returns a data point every 15s within the time range. Use a positive duration, such as `15s`; Tempo rejects negative values. If not specified, then the default behavior chooses a dynamic step based on the time range.
 - `exemplars = (integer)`
   Optional. Defines the maximum number of exemplars for the query. It's trimmed to `max_exemplars` if it exceeds it.
 
