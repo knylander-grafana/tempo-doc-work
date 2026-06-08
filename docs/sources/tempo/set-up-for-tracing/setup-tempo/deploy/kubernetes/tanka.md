@@ -394,6 +394,9 @@ _config+:: {
       min_replicas: 1,
       max_replicas: 200,
       target_cpu: '500m',
+      // Leave query empty to use the CPU trigger. Set query to use a Prometheus
+      // trigger that returns the desired metrics-generator replica count.
+      query: '',
     },
   },
   backend_worker+: {
@@ -430,7 +433,38 @@ _config+:: {
 },
 ```
 
-Tempo uses these trigger types when KEDA is enabled: CPU for distributor and metrics-generator, Prometheus for backend-worker and live-store.
+Tempo uses these trigger types when KEDA is enabled: CPU for distributor and metrics-generator by default, and Prometheus for backend-worker and live-store.
+KEDA-based autoscaling for the Tempo Jsonnet library requires Tempo 3.0 or later.
+
+Metrics-generator autoscaling uses the CPU trigger when `_config.metrics_generator.keda.query` is empty, which is the default.
+In this mode, `target_cpu` controls the target CPU per Pod and defaults to `500m`.
+To use Prometheus-based metrics-generator autoscaling, set `_config.metrics_generator.keda.query` to a PromQL query and set `_config.autoscaling_prometheus_url`.
+The metrics-generator Prometheus trigger uses `metricType: Value` and `threshold: 1`, so the query result must be the desired Pod count.
+If you use a pinned Jsonnet dependency, make sure it includes the `metrics_generator.keda.query` option.
+
+The following example scales metrics-generator from CPU usage while preventing replicas from exceeding the live-store partition count:
+
+```jsonnet
+_config+:: {
+  autoscaling_prometheus_url: 'http://prometheus-operated.monitoring.svc.cluster.local:9090',
+  metrics_generator+: {
+    keda+: {
+      enabled: true,
+      min_replicas: 1,
+      max_replicas: 200,
+      query: |||
+        (
+          ceil(sum(rate(container_cpu_usage_seconds_total{pod=~"metrics-generator-.*"}[1h])) / 0.5)
+          <
+          max(sum by (instance) (tempo_partition_ring_partitions{name="livestore-partitions", state=~"Active|Inactive"}))
+        )
+        or
+          max(sum by (instance) (tempo_partition_ring_partitions{name="livestore-partitions", state=~"Active|Inactive"}))
+      |||,
+    },
+  },
+},
+```
 
 Block-builder autoscaling is configured independently under `_config.block_builder.keda`. The default approach (`scaling: 'rollout-operator'`) uses the rollout-operator to mirror the live-store zone-a replica count directly to block-builder. This is the faster approach on both scale-up and scale-down: block-builder reacts as soon as the ReplicaTemplate changes, which is the same signal zone-a responds to. Block-builder intentionally stays alive through the live-store drain window so that in-flight partition data is not lost before it is written to the backend. This approach requires `live_store.keda.enabled=true`; `rollout_operator_replica_template_access_enabled` is set automatically.
 
