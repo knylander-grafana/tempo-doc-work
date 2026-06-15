@@ -56,7 +56,7 @@ These functions can be added as an operator at the end of any TraceQL query.
 | [`topk()`](#the-topk-function)                               | Returns only the top `k` results from a metrics query.                                             | `{ resource.service.name = "foo" } \| rate() by (span.http.url) \| topk(10)`    |
 | [`bottomk()`](#the-bottomk-function)                         | Returns only the bottom `k` results from a metrics query.                                          | `{ resource.service.name = "foo" } \| rate() by (span.http.url) \| bottomk(10)` |
 | [Comparison operators](#comparison-operators)                 | Filters metric data points that don't meet a threshold condition.                                  | `{ } \| rate() > 10`                                                            |
-| [Arithmetic expressions](#arithmetic-expressions)            | Combines two or more metrics queries with `+`, `-`, `*`, `/`.                                      | `({status=error} \| rate()) / ({} \| rate())`                                   |
+| [Arithmetic expressions](#arithmetic-expressions)            | Combines metrics queries, or combines a metrics query with a scalar, using `+`, `-`, `*`, `/`.      | `({} \| rate()) * 100`                                                           |
 
 ### Group results with `by()`
 
@@ -259,13 +259,17 @@ Arithmetic expressions let you answer these questions in a single TraceQL query 
 Without this, you'd need to run separate queries and combine them externally using tools like Grafana Math expressions.
 
 You can combine two metrics queries with each other, or combine a metrics query with a constant number (a scalar) to scale or shift its values.
+Scalar operands are available in Tempo 3.1 and later and don't require a new block format.
 
-Each sub-query must be wrapped in parentheses.
+Each metrics pipeline in an arithmetic expression must be wrapped in parentheses.
+For example, `({} | rate()) * 5` is valid, but `{} | rate() * 5` isn't valid.
 
 ### Syntax
 
 ```
 (<spanset pipeline> | <metrics function>) <operator> (<spanset pipeline> | <metrics function>)
+(<spanset pipeline> | <metrics function>) <operator> <number>
+<number> <operator> (<spanset pipeline> | <metrics function>)
 ```
 
 For example, to calculate an error rate ratio:
@@ -318,20 +322,22 @@ Scalars can be integers, floating-point numbers, or negative values. You can use
 ```traceql
 ({} | rate()) / 2.5
 ({} | rate()) - 5
-({} | rate()) * (-100)
-100 + ({} | rate())
+({} | rate()) * 100
+100 * (({status=error} | rate()) / ({} | rate()))
+({} | count_over_time() by(resource.service.name)) * 100
 ```
 
 Scalar operands let you shape a metric into the form you want to read or alert on, without post-processing the result in Grafana or another tool. You can use them to:
-* Express a ratio as a percentage
-* Rescale a rate
-* Set alert and panel thresholds
-* Convert units
+
+- Express a ratio as a percentage
+- Rescale a rate
+- Set alert and panel thresholds
+- Convert units
 
 To express a ratio as a percentage, multiply an error-rate ratio by `100` to read it as a percentage instead of a fraction.
 
 ```traceql
-100 * ({status=error} | count_over_time()) / ({} | count_over_time())
+100 * (({status=error} | count_over_time()) / ({} | count_over_time()))
 ```
 
 The operands can be used to rescale a rate. Because `rate()` returns matching spans per second, multiply by `60` to read it as a per-minute value.
@@ -343,7 +349,7 @@ The operands can be used to rescale a rate. Because `rate()` returns matching sp
 Use scalar operands to set alert and panel thresholds in one place. Bake the conversion into the query so the value matches the unit your threshold expects, instead of maintaining the math separately in each dashboard or alert rule.
 
 ```traceql
-100 * ({status=error} | rate()) / ({} | rate()) > 5
+100 * (({status=error} | rate()) / ({} | rate())) > 5
 ```
 
 To convert units, divide or multiply by a constant to read a value in the unit you want, for example, bytes as mebibytes.
@@ -398,7 +404,8 @@ Following IEEE-754 semantics, any arithmetic operation involving `NaN` returns `
 
 ### Limitations
 
-- Each sub-query must be enclosed in parentheses. Bare expressions like `{} | rate() + {} | rate()` aren't valid.
+- Each metrics pipeline must be enclosed in parentheses. Bare expressions like `{} | rate() + {} | rate()` and `{} | rate() * 5` aren't valid.
+- Scalar-only expressions, for example, `1 + 2`, aren't TraceQL metrics queries.
 - Duration literals such as `10s` can't be used as scalar operands.
 - The `compare()` function can't be used in arithmetic expressions.
 

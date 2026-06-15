@@ -394,6 +394,18 @@ _config+:: {
       min_replicas: 1,
       max_replicas: 200,
       target_cpu: '500m',
+      // Optional. Set query to use a Prometheus trigger instead of target_cpu.
+      // This query returns the desired replica count based on CPU demand,
+      // capped by the number of live-store partitions.
+      query: |||
+        (
+          ceil(sum(rate(container_cpu_usage_seconds_total{pod=~"metrics-generator-.*"}[1h])) / 0.5)
+          <
+          max(sum by (instance) (tempo_partition_ring_partitions{name="livestore-partitions", state=~"Active|Inactive"}))
+        )
+        or
+          max(sum by (instance) (tempo_partition_ring_partitions{name="livestore-partitions", state=~"Active|Inactive"}))
+      |||,
     },
   },
   backend_worker+: {
@@ -430,7 +442,13 @@ _config+:: {
 },
 ```
 
-Tempo uses these trigger types when KEDA is enabled: CPU for distributor and metrics-generator, Prometheus for backend-worker and live-store.
+Tempo uses these trigger types when KEDA is enabled: CPU for distributor, Prometheus for backend-worker and live-store, and either CPU or Prometheus for metrics-generator.
+Prometheus-based metrics-generator autoscaling is available in Tempo 3.1 and later and doesn't require a new block format.
+
+When `_config.metrics_generator.keda.query` is empty, Tempo uses the CPU trigger based on `_config.metrics_generator.keda.target_cpu` (default: `500m`).
+When `_config.metrics_generator.keda.query` isn't empty, Tempo creates a KEDA Prometheus trigger with `metricType: Value` and `threshold: 1`.
+In this mode, the PromQL query result is the desired metrics-generator pod count.
+You must set `_config.autoscaling_prometheus_url` for this mode.
 
 Block-builder autoscaling is configured independently under `_config.block_builder.keda`. The default approach (`scaling: 'rollout-operator'`) uses the rollout-operator to mirror the live-store zone-a replica count directly to block-builder. This is the faster approach on both scale-up and scale-down: block-builder reacts as soon as the ReplicaTemplate changes, which is the same signal zone-a responds to. Block-builder intentionally stays alive through the live-store drain window so that in-flight partition data is not lost before it is written to the backend. This approach requires `live_store.keda.enabled=true`; `rollout_operator_replica_template_access_enabled` is set automatically.
 
