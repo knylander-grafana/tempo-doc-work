@@ -145,7 +145,7 @@ The mixins are generated in the `operations/tempo-mixin-compiled` directory.
 ### Import the dashboards to Grafana
 
 The `dashboards` directory includes the nine monitoring dashboards that can be installed into your Grafana instance.
-Refer to [Import a dashboard ](https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/import-dashboards/)in the Grafana documentation.
+Refer to [Import a dashboard](https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/import-dashboards/) in the Grafana documentation.
 
 {{< admonition type="tip" >}}
 Install all nine dashboards, including `tempo-service-graph.json` for service topology.
