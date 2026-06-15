@@ -55,7 +55,7 @@ Refer to [Use polling to monitor the backend status](polling/) for Tempo.
 
 ## Dashboards
 
-The [Tempo mixin](https://github.com/grafana/tempo/tree/main/operations/tempo-mixin) has eight Grafana dashboards in the `dashboards` folder that you can download and import into your Grafana UI.
+The [Tempo mixin](https://github.com/grafana/tempo/tree/main/operations/tempo-mixin) has nine Grafana dashboards in the `dashboards` folder that you can download and import into your Grafana UI.
 These dashboards work well when you run Tempo in a Kubernetes (k8s) environment and metrics scraped have the
 `cluster` and `namespace` labels.
 
@@ -140,6 +140,17 @@ The Tenants dashboard provides per-tenant visibility into ingestion, reads, stor
 It shows a limits table alongside distributor bytes and spans per second, live trace counts, query rates for ID lookups and searches, blocklist length, outstanding compactions, and metrics-generator bytes and active series.
 
 Use this dashboard in multitenant deployments to identify tenants with high ingestion rates, query volumes, or storage growth.
+
+### Tempo Service Topology dashboard
+
+> This is available as `tempo-service-graph.json`.
+
+The Service Topology dashboard visualizes service-to-service topology from the `traces_service_graph_connection_info` metric.
+This dashboard is available in Tempo 3.1 and later and doesn't require a new block format.
+
+Use this dashboard to inspect observed client-to-server edges across services.
+The `traces_service_graph_connection_info` metric is emitted only when you enable the `service-graphs-connection-info` subprocessor.
+For configuration details, refer to [service graphs subprocessors](/docs/tempo/<TEMPO_VERSION>/metrics-from-traces/service_graphs/#enabling-specific-metrics-subprocessors).
 
 ## Rules and alerts
 
