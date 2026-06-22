@@ -59,6 +59,49 @@ make docker-tempo-cli
 docker run --rm tempo-cli [arguments...]
 ```
 
+## Experimental trace diff command
+
+{{< admonition type="warning" >}}
+The `trace-diff` command is experimental and the output format can change. It's available in Tempo 3.1 and later.
+{{< /admonition >}}
+
+Compare two local trace JSON files and emit a mechanical JSON diff between them.
+Use this command to compare traces from two runs of the same workflow and inspect which spans or span-level values changed.
+
+```bash
+tempo-cli experimental trace-diff <trace-a> <trace-b> [options]
+```
+
+Arguments:
+
+- `trace-a` Baseline local trace JSON file.
+- `trace-b` Comparison local trace JSON file.
+
+Options:
+
+- `--format trace-patch-v0` Output format. The only supported value is `trace-patch-v0`.
+- `-o, --out <path>` Write output to a file instead of `stdout`.
+- `--pretty` Pretty-print JSON output.
+
+Example:
+
+```bash
+tempo-cli experimental trace-diff baseline-trace.json comparison-trace.json --pretty -o trace.patch.json
+```
+
+The `trace-patch-v0` output includes:
+
+- `base` and `compare` metadata for the input traces.
+- `stats` counts for matched, modified, added, and removed spans, plus field and attribute changes.
+- `modified` entries for matched spans with changed fields, such as `duration_ms` or `status`, and changed span attributes.
+- `added` and `removed` entries for whole-span changes.
+- `warnings` for non-fatal matcher caveats, such as high-cardinality span names.
+
+Current limitations:
+
+- The command doesn't normalize high-cardinality span names with DRAIN before matching spans.
+- The diff reports span fields and span attributes. It doesn't report differences for instrumentation scope, events, or links.
+
 ## Backend options
 
 Tempo CLI connects directly to the storage backend for some commands, meaning that it requires the ability to read from S3, GCS, Azure or file-system storage.
