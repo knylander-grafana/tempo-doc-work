@@ -860,6 +860,50 @@ Example with intrinsic attributes:
 tempo-cli gen attr-index --add-intrinsics ./path/to/block
 ```
 
+## Experimental trace diff
+
+{{< admonition type="warning" >}}
+This command is experimental. The output format and behavior can change in future releases.
+{{< /admonition >}}
+
+Compare two local trace JSON files and produce a structural diff in `trace-patch-v0` format.
+Use this command to compare traces captured at different times or from different environments, for example, to understand how a deployment changed trace structure.
+
+```bash
+tempo-cli experimental trace-diff --trace-a=<BASELINE_PATH> --trace-b=<COMPARISON_PATH>
+```
+
+Required flags:
+
+- `--trace-a <path>` Required. Path to the baseline trace JSON file.
+- `--trace-b <path>` Required. Path to the comparison trace JSON file.
+
+Options:
+
+- `--format <value>` Output format. The only supported value is `trace-patch-v0`, which is also the default.
+- `-o, --out <path>` File to write output to. If you don't specify this option, the command prints output to `stdout`.
+- `--pretty` Pretty-print JSON output.
+
+The input files can be raw OpenTelemetry JSON traces or Tempo `TraceByIDResponse` JSON responses.
+The `trace-patch-v0` output identifies spans that were added, removed, or modified between the baseline trace and comparison trace.
+For modified spans, the output reports changes to supported span fields, such as `duration_ms` and `status`, and span attributes.
+
+Example:
+
+```bash
+tempo-cli experimental trace-diff --trace-a=baseline.json --trace-b=comparison.json --pretty
+```
+
+Example writing output to a file:
+
+```bash
+tempo-cli experimental trace-diff --trace-a=baseline.json --trace-b=comparison.json --out=diff-output.json
+```
+
+The command uses raw span names when it matches spans.
+It doesn't apply DRAIN normalization for span names with high-cardinality values, so equivalent operations that include request-specific IDs in span names can be reported as added or removed spans.
+The command doesn't report changes to scope, event, or link attributes.
+
 ## Drop traces by ID
 
 Rewrites all blocks for a tenant that contain specific trace IDs. The traces are dropped from
