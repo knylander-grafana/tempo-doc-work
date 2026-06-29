@@ -54,6 +54,38 @@ This is different to the default TraceQL maximum time range of 168 hours (7 days
 The `query_frontend.metrics.query_backend_after` parameter controls the boundary between querying the live-store and backend storage.
 Time ranges older than `query_backend_after` (default `15m`) are searched in backend/object storage only, while more recent data is queried from the live-store.
 
+### Understand metrics query range limits
+
+Tempo validates TraceQL metrics query ranges before it applies internal step alignment.
+This means `query_frontend.metrics.max_duration` is checked against the time range that you request, not against the larger range Tempo might create internally while sharding the query.
+
+The effective metrics query range limit is selected in this order:
+
+1. The read override `max_metrics_duration`, when it is non-zero. You can set it under `overrides.defaults.read` for the default override or under a tenant-specific override.
+1. The `query_frontend.metrics.max_duration` value.
+
+The default `query_frontend.metrics.max_duration` is `24h`.
+A value of `0` disables the limit.
+Tempo applies the same limit to range metrics queries and instant metrics queries.
+
+If `query_frontend.query_end_cutoff` is set, Tempo clamps the query end time to the cutoff before it checks `max_duration`.
+This helps requests with an end time in the future, for example, because of client clock skew, pass validation when the effective query range is within the limit.
+If the whole requested query window falls inside `query_end_cutoff`, Tempo rejects the request with a bad request error instead of returning a partial or empty result.
+
+For example, use a global 24 hour limit and a 12 hour default read override:
+
+```yaml
+query_frontend:
+  query_end_cutoff: 30s
+  metrics:
+    max_duration: 24h
+
+overrides:
+  defaults:
+    read:
+      max_metrics_duration: 12h
+```
+
 For example, in a cloud environment, smaller jobs with more concurrency may be
 desired due to the nature of scale on the backend.
 

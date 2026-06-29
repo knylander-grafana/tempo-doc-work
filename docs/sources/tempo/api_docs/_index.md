@@ -34,6 +34,7 @@ For externally supported gRPC API, [refer to Tempo gRPC API](#tempo-grpc-api).
 | [Ingest traces](#ingest)                                                              | Distributor                               | -    | See section for details                                   |
 | [Querying traces by id](#query)                                                       | Query-frontend                            | HTTP | `GET /api/traces/<traceID>`                               |
 | [Querying traces by id V2](#query-v2)                                                 | Query-frontend                            | HTTP | `GET /api/v2/traces/<traceID>`                            |
+| [Trace diff V2](#trace-diff-v2)                                                       | Query-frontend                            | HTTP | `POST /api/v2/traces/diff`                                |
 | [Searching traces](#search)                                                           | Query-frontend                            | HTTP | `GET /api/search?<params>`                                |
 | [Search tag names](#search-tags)                                                      | Query-frontend                            | HTTP | `GET /api/search/tags`                                    |
 | [Search tag names V2](#search-tags-v2)                                                | Query-frontend                            | HTTP | `GET /api/v2/search/tags`                                 |
@@ -217,6 +218,48 @@ Other formats can be requested using the `Accept` header:
 
 - `Accept: application/protobuf` - Returns OpenTelemetry proto format
 - `Accept: application/vnd.grafana.llm` - Returns a simplified JSON format optimized for LLM consumption. This format is subject to change and shouldn't be relied on for programmatic use.
+
+### Trace diff V2
+
+The trace diff endpoint is an experimental API for comparing two traces.
+Use it only for integration testing until diff execution is implemented.
+
+```bash
+POST /api/v2/traces/diff
+```
+
+The request body contains the traces to compare.
+Each trace object uses these fields:
+
+- `traceId`
+  Required. Hexadecimal trace ID.
+- `start`
+  Optional. Unix epoch seconds for the start of the time range to search.
+- `end`
+  Optional. Unix epoch seconds for the end of the time range to search. When both `start` and `end` are set, `end` must be greater than `start`.
+
+Example:
+
+```bash
+curl -X POST http://localhost:3200/api/v2/traces/diff \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "base": {
+      "traceId": "2f3e0cee77ae5dc9c17ade3689eb2e54",
+      "start": 1684778327,
+      "end": 1684778427
+    },
+    "compare": {
+      "traceId": "d6e9329d67b6146a0000000000000000",
+      "start": 1684778327,
+      "end": 1684778427
+    }
+  }'
+```
+
+The endpoint currently validates the request and then returns `501 Not Implemented` with the response body `trace diff endpoint is not implemented`.
+Invalid JSON, missing `traceId` fields, invalid trace IDs, and invalid time ranges return `400 Bad Request`.
+Methods other than `POST` return `405 Method Not Allowed`.
 
 ### Search
 
