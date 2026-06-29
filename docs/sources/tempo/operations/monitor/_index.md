@@ -29,6 +29,7 @@ Use `tempo_query_frontend_bytes_inspected_total` to monitor how many bytes the q
 This counter is emitted per `tenant` and `op` (`traces`, `search`, `metadata`, `metrics`).
 Because cached responses from queriers are excluded, it reflects uncached query I/O.
 For recent-data queries, use `tempo_live_store_query_inspected_bytes_total` to isolate bytes inspected by live-stores.
+For backend-block queries, use `tempo_querier_backend_processing_duration_seconds` to monitor querier processing time by tenant and operation.
 
 For PromQL examples and alerting guidance, refer to [Monitor query I/O and span timestamp distance](/docs/tempo/<TEMPO_VERSION>/operations/monitor/query-io-and-timestamp-distance/).
 

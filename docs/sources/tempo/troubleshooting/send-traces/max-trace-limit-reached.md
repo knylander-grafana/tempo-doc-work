@@ -46,6 +46,26 @@ tempo_discarded_spans_total
 
 In this case, use available configuration options to [increase limits](https://grafana.com/docs/tempo/<TEMPO_VERSION>/configuration/#ingestion-limits).
 
+## Kafka write failures
+
+Tempo deployments that write ingested traces to Kafka can refuse spans when the distributor can't write records to Kafka.
+Transient Kafka write failures, including write timeouts and producer buffer limits, return retryable errors to OTLP clients.
+For OTLP over HTTP, these errors return HTTP `503`.
+For OTLP over gRPC, these errors return gRPC `Unavailable`.
+
+Configure OTLP clients to retry these responses.
+If Kafka reports that a record is too large, Tempo returns gRPC `InvalidArgument`; reduce the batch or span size instead of retrying the same payload.
+
+Use the distributor Kafka produce failure metric to identify the failure reason:
+
+```promql
+sum by (reason) (
+  rate(tempo_distributor_produce_failures_total[5m])
+)
+```
+
+The `reason` label includes values such as `timeout`, `buffer-full`, `record-too-large`, `canceled`, and `other`.
+
 ## Trace limits
 
 Limits such as `max_bytes_per_trace` and `max_live_traces_bytes` are enforced asynchronously by the live-store and
