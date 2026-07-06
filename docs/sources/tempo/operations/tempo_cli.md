@@ -886,6 +886,17 @@ Options:
 - `--pretty` Pretty-print JSON output.
 
 The input files can be either raw OpenTelemetry JSON traces or Tempo `TraceByIDResponse` JSON responses.
+The output uses the same `trace-patch-v0` structure as the trace diff API:
+
+- `modified` lists field and attribute changes for matched spans.
+- `added` and `removed` list whole-span additions and removals.
+- `stats` summarizes matched, modified, added, and removed spans.
+- `warnings` reports non-fatal diff limitations.
+
+Duration changes use the `duration_nanos` field.
+Tempo suppresses duration-only changes when they are within the trace diff tolerance: 20% relative tolerance with a 1 ms absolute floor.
+Allow-listed numeric magnitude attributes, such as byte-size, token-count, and duration attributes, use a 5% relative tolerance.
+Other numeric attributes, such as status codes and port numbers, are compared exactly.
 
 Example:
 

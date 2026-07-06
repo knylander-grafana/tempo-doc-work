@@ -54,6 +54,8 @@ In microservices mode, the metrics-generator partition ring tracks which generat
 
 Web pages are available at the following endpoints. They show every ring member, their tokens, and include the ability to "Forget" a ring member. "Forgetting" is useful when a ring member leaves the ring without properly shutting down, and therefore leaves its tokens in the ring.
 
+Some rings can remove stale entries automatically. For example, when the distributor ring is enabled for global ingestion rate limiting, Tempo removes an unhealthy distributor entry after `2 * distributor.ring.heartbeat_timeout`.
+
 To access a ring page, send a GET request to the Tempo HTTP API. By default, Tempo listens on port `3200` (configured with `server.http_listen_port`). For example:
 
 ```
@@ -72,7 +74,9 @@ In single-binary mode, any enabled ring endpoints are available on the same host
 This endpoint is only available when Tempo is configured with [the global ingestion rate strategy](https://grafana.com/docs/tempo/<TEMPO_VERSION>/configuration/#ingestion-rate-strategy).
 {{< /admonition >}}
 
-Unhealthy distributors have little impact but should be forgotten to reduce the cost of maintaining the ring.
+When a distributor exits without a graceful shutdown, Tempo automatically forgets its stale ring entry after `2 * distributor.ring.heartbeat_timeout`.
+The default distributor heartbeat timeout is 5 minutes, so stale distributor entries are usually removed after about 10 minutes.
+You can still use the ring page to inspect distributor health and manually forget an entry if it remains stale after the auto-forget period.
 
 ### Live-store (partition ring)
 

@@ -219,6 +219,10 @@ Other formats can be requested using the `Accept` header:
 - `Accept: application/protobuf` - Returns OpenTelemetry proto format
 - `Accept: application/vnd.grafana.llm` - Returns a simplified JSON format optimized for LLM consumption. This format is subject to change and shouldn't be relied on for programmatic use.
 
+The response can include a `metrics` object with read-side counters that help explain query cost.
+The `metrics` object can include `inspectedBytes`, `backendReads`, `backendBytes`, and `additionalMetrics`.
+The `additionalMetrics` map uses stable lower camel case keys, such as `cacheHits`, `cacheMisses`, `cacheBytes`, `rowGroupsInspected`, `rowGroupsSkipped`, `pagesInspected`, and `pagesSkipped`.
+
 ### Search
 
 The Tempo Search API finds traces based on span and process attributes (tags and values).
@@ -387,9 +391,16 @@ curl -G -s http://localhost:3200/api/search/tags?scope=span  | jq
     "service.name",
     "starter",
     "version"
-  ]
+  ],
   "metrics": {
-    "inspectedBytes": "630188"
+    "inspectedBytes": "630188",
+    "totalBlocks": 3,
+    "backendReads": "9",
+    "backendBytes": "630188",
+    "additionalMetrics": {
+      "cacheHits": "2",
+      "rowGroupsInspected": "14"
+    }
   }
 }
 ```
@@ -518,12 +529,19 @@ curl -G -s http://localhost:3200/api/v2/search/tags  | jq
         "exception.escape",
         "exception.message",
         "exception.stacktrace",
-        "exception.type",
+        "exception.type"
       ]
     }
   ],
   "metrics": {
-    "inspectedBytes": "377046"
+    "inspectedBytes": "377046",
+    "totalBlocks": 2,
+    "backendReads": "7",
+    "backendBytes": "377046",
+    "additionalMetrics": {
+      "cacheMisses": "1",
+      "pagesInspected": "24"
+    }
   }
 }
 ```
@@ -558,7 +576,14 @@ curl -G -s http://localhost:3200/api/search/tag/service.name/values  | jq
     "shop-backend"
   ],
   "metrics": {
-    "inspectedBytes": "431380"
+    "inspectedBytes": "431380",
+    "totalBlocks": 3,
+    "backendReads": "8",
+    "backendBytes": "431380",
+    "additionalMetrics": {
+      "cacheHits": "4",
+      "rowGroupsSkipped": "6"
+    }
   }
 }
 ```
@@ -614,7 +639,14 @@ curl -G -s http://localhost:3200/api/v2/search/tag/.service.name/values | jq
     }
   ],
   "metrics": {
-    "inspectedBytes": "502756"
+    "inspectedBytes": "502756",
+    "totalBlocks": 4,
+    "backendReads": "12",
+    "backendBytes": "502756",
+    "additionalMetrics": {
+      "cacheBytes": "98304",
+      "pagesSkipped": "18"
+    }
   }
 }
 ```
@@ -638,6 +670,10 @@ By default, this endpoint returns a JSON response with tag values and their type
 Other formats can be requested using the `Accept` header:
 
 - `Accept: application/vnd.grafana.llm` - Returns a simplified JSON format optimized for LLM consumption. This format is subject to change and shouldn't be relied on for programmatic use.
+
+The tag name and tag value endpoints return a `metrics` object with metadata search counters.
+Depending on the query path, the object can include `inspectedBytes`, `completedJobs`, `totalJobs`, `totalBlocks`, `totalBlockBytes`, `backendReads`, `backendBytes`, and `additionalMetrics`.
+Clients should treat unknown `additionalMetrics` keys as forward compatible.
 
 #### Filtered tag values
 
@@ -734,10 +770,11 @@ GET /api/metrics/query?q={status=error}|count_over_time()by(resource.service.nam
 ### Trace diff
 
 {{< admonition type="warning" >}}
-This endpoint is experimental. The request format and behavior may change in future releases. The diff computation isn't implemented yet; the endpoint currently returns `501 Not Implemented` for valid requests.
+This endpoint is experimental. The request format, response format, and behavior may change in future releases.
 {{< /admonition >}}
 
-This endpoint will compare two traces and produce a structural diff. Send a `POST` request with a JSON body that identifies both traces by their IDs.
+This endpoint compares two traces and returns a structural diff in `trace-patch-v0` JSON format.
+Send a `POST` request with a JSON body that identifies both traces by their IDs.
 
 ```
 POST /api/v2/traces/diff
@@ -775,9 +812,102 @@ Parameters:
 - `compare.end`
   Optional. End of the time range to search for the comparison trace (UNIX epoch seconds).
 
-When `start` and `end` are provided, the request validates that `start` is before `end`. When the endpoint is fully implemented, these fields will limit block search to that time range. If omitted, Tempo will search across all blocks.
+When `start` and `end` are provided, Tempo validates that `start` is before `end` and limits the trace lookup to that time range.
+If omitted, Tempo searches across all blocks.
+
+Example:
+
+```bash
+curl -X POST http://localhost:3200/api/v2/traces/diff \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "base": {"traceId": "<BASE_TRACE_ID>"},
+    "compare": {"traceId": "<COMPARE_TRACE_ID>"}
+  }' | jq
+```
+
+#### Trace diff response
+
+The response is a JSON object with these top-level fields:
+
+- `version`: The output format version. Currently, Tempo returns `trace-patch-v0`.
+- `base` and `compare`: The trace ID and span count for each trace.
+- `stats`: Counts for matched, modified, added, and removed spans, plus field and attribute change counts.
+- `modified`: Field and attribute changes on matched spans.
+- `added` and `removed`: Whole-span additions and removals.
+- `warnings`: Non-fatal warnings produced during diffing.
+
+Example response:
+
+```json
+{
+  "version": "trace-patch-v0",
+  "base": {
+    "traceId": "<BASE_TRACE_ID>",
+    "spanCount": 12
+  },
+  "compare": {
+    "traceId": "<COMPARE_TRACE_ID>",
+    "spanCount": 13
+  },
+  "stats": {
+    "spanCountA": 12,
+    "spanCountB": 13,
+    "matchedSpans": 11,
+    "modifiedSpans": 1,
+    "addedSpans": 1,
+    "removedSpans": 0,
+    "fieldChanges": 1,
+    "attributeChanges": 1,
+    "eventChanges": 0,
+    "truncated": false
+  },
+  "modified": [
+    {
+      "span": {
+        "path": [0, 1],
+        "service": "checkout",
+        "name": "POST /checkout",
+        "kind": "server"
+      },
+      "changes": [
+        {
+          "op": "modify",
+          "target": {
+            "type": "field",
+            "name": "duration_nanos"
+          },
+          "before": 120000000,
+          "after": 220000000
+        },
+        {
+          "op": "modify",
+          "target": {
+            "type": "attribute",
+            "scope": "span",
+            "key": "http.response.status_code"
+          },
+          "before": 200,
+          "after": 500
+        }
+      ]
+    }
+  ],
+  "added": [],
+  "removed": [],
+  "warnings": []
+}
+```
+
+Span duration changes use the `duration_nanos` field.
+Tempo suppresses duration-only changes when they are within the trace diff tolerance: 20% relative tolerance with a 1 ms absolute floor.
+Allow-listed numeric magnitude attributes, such as byte-size, token-count, and duration attributes, use a 5% relative tolerance.
+Other numeric attributes, such as status codes and port numbers, are compared exactly.
 
 Only `POST` is allowed. Other methods return `405 Method Not Allowed`.
+If either trace can't be found, Tempo returns `404 Not Found`.
+If either lookup returns a partial trace, Tempo returns `422 Unprocessable Entity` because partial traces can't be diffed.
+If the combined size of the base and comparison traces exceeds the tenant's `max_bytes_per_trace` limit, Tempo returns `429 Too Many Requests`.
 
 ### Query Echo endpoint
 
