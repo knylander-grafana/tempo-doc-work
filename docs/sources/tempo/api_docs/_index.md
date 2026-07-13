@@ -184,6 +184,56 @@ Parameters:
   Optional. Along with `end` define a time range from which traces should be returned.
 - `end = (unix epoch seconds)`
   Optional. Along with `start` define a time range from which traces should be returned. Providing both `start` and `end` includes traces for the specified time range only. If the parameters aren't provided then Tempo checks for the trace across all blocks in backend. If the parameters are provided, it only checks in the blocks within the specified time range, this can result in trace not being found or partial results if it doesn't fall in the specified time range.
+- `span_pruning = (boolean)`
+  Optional. Enables span pruning post-processing on the returned trace. This parameter only takes effect when the query frontend also has `span_pruning_enabled: true` set under `trace_by_id`. If the configuration option is disabled, Tempo ignores this parameter and returns the trace without pruning.
+  Default = `false`
+- `span_pruning_group_by = (comma-separated list of attribute glob patterns)`
+  Optional. Overrides the attribute patterns used to decide which leaf spans belong in the same aggregation group, for example `db.*,http.method`. Spans must share the same matched attribute values to be grouped. Only used when `span_pruning=true`.
+- `span_pruning_min_spans = (integer)`
+  Optional. Overrides the minimum number of similar spans required in a group before Tempo aggregates them into a summary span. Groups smaller than this threshold are left unpruned. Only used when `span_pruning=true`.
+  Default = `5`
+- `span_pruning_max_parent_depth = (integer)`
+  Optional. Overrides how many ancestor levels above the aggregated leaf spans can also be aggregated. Use `0` to aggregate only leaf spans, or `-1` for unlimited depth. Only used when `span_pruning=true`.
+  Default = `1`
+
+#### Span pruning
+
+Span pruning reduces large trace-by-ID V2 responses by replacing repeated, similar spans with summary spans.
+Use span pruning when a trace contains many repeated leaf spans and you want to inspect the trace shape without returning every repeated operation.
+
+{{< admonition type="note" >}}
+Span pruning uses an alpha OpenTelemetry span pruning processor. Treat the response shaping and aggregation attributes as subject to change in a future Tempo release.
+{{< /admonition >}}
+
+Tempo groups leaf spans by parent span name, span name, span kind, status, TraceState, and any attribute values matched by `span_pruning_group_by`.
+When a group reaches `span_pruning_min_spans`, Tempo replaces the grouped spans with one summary span.
+With the default `span_pruning_max_parent_depth` value of `1`, Tempo can also aggregate one eligible parent level above the pruned leaf spans.
+
+Summary spans include aggregation attributes that explain the replacement:
+
+- `aggregation.is_summary` is `true` on summary spans.
+- `aggregation.span_count` is the number of spans represented by the summary span.
+- `aggregation.duration_min_ns`, `aggregation.duration_max_ns`, `aggregation.duration_total_ns`, and `aggregation.duration_avg_ns` describe the represented span durations.
+- `aggregation.histogram_bucket_bounds_s` and `aggregation.histogram_bucket_counts` describe the duration histogram for the represented spans.
+
+If Tempo returns a partial trace because the trace exceeds the maximum trace size, span pruning applies only to the spans present in that partial response.
+
+To enable span pruning for trace-by-ID V2 requests, set the query frontend configuration option:
+
+```yaml
+query_frontend:
+  trace_by_id:
+    span_pruning_enabled: true
+```
+
+Then request a pruned trace from the V2 endpoint:
+
+```bash
+curl -G http://localhost:3200/api/v2/traces/<TRACE_ID> \
+  --data-urlencode span_pruning=true \
+  --data-urlencode span_pruning_group_by=db.system \
+  --data-urlencode span_pruning_min_spans=3
+```
 
 The following query API is also provided on the querier service for _debugging_ purposes.
 
