@@ -235,6 +235,13 @@ Other formats can be requested using the `Accept` header:
 - `Accept: application/protobuf` - Returns OpenTelemetry proto format
 - `Accept: application/vnd.grafana.llm` - Returns a simplified JSON format optimized for LLM consumption. This format is subject to change and shouldn't be relied on for programmatic use.
 
+When span pruning is enabled for the request, the response may include a `status` field set to `PARTIAL` and a `message` field that explains the pruning outcome:
+
+- `Trace was already pruned before it reached Tempo; this is the complete trace Tempo has stored` — the trace was pruned upstream before ingestion. Tempo has no unpruned copy to return.
+- `Trace was pruned by Tempo while serving this request; the original spans remain in storage and can be retrieved by querying again with span pruning disabled` — Tempo pruned the trace while serving this request. Query again with `span_pruning=false` to retrieve the original spans.
+
+If the trace is also partial for other reasons, for example because it exceeds the maximum trace size, `message` combines multiple explanations separated by semicolons.
+
 ### Search
 
 The Tempo Search API finds traces based on span and process attributes (tags and values).
