@@ -109,6 +109,14 @@ Too many open connections
 
 When using the [memcached_exporter](https://github.com/prometheus/memcached_exporter), you can observe the number of open connections at `memcached_current_connections`.
 
+### Client connection pool tuning
+
+Tempo keeps memcached client connection pools warm by default so query bursts do not trigger a dial storm at the start of each surge.
+The default `max_idle_conns` is 100 per memcached server, and idle connections are not closed unless you set `min_idle_conns_headroom_percentage` to a positive value.
+If you see elevated tail latency or connection errors at the start of query bursts, increase `max_idle_conns` to match your peak parallel cache requests per server.
+Use `connect_timeout` to tune connection establishment separately from `timeout` when dial latency contributes to request tail latency.
+Refer to [Cache configuration](../configuration/#cache) for the full list of memcached client options.
+
 ## Cache size control
 
 Tempo querier accesses bloom filters of all blocks while searching for a trace.
