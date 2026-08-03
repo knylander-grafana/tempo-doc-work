@@ -200,6 +200,10 @@ Span pruning is experimental. The `span_pruning*` parameters, their behavior, an
 - `span_pruning_max_parent_depth = (integer)`
   Optional. Overrides how many ancestor levels above the aggregated leaf spans can also be aggregated. Use `0` to aggregate only leaves, or `-1` for unlimited depth. Only used when pruning is enabled for the request, either via `span_pruning=true` or `span_pruning_enabled_by_default`.
   Default = `1`
+- `q = (TraceQL filter)`
+  Optional. A single TraceQL spanset filter (for example `{ span.http.status_code = 500 }`) that returns only the matching spans. When it drops spans, the response status is `PARTIAL` to signal a subset. Only a single `{ ... }` filter is supported: pipelines, structural operators, metrics queries, trace-level intrinsics, and trace-scoped attributes return a `400`, and an absent or empty `q` returns the full trace.
+- `keep_hierarchy = (bool)`
+  Optional. When `true`, the response also includes the ancestor path from the root spans to each matched span, so the result is still a complete hierarchy that can be rendered as a waterfall. Defaults to `false` (only the spans matching `q`). Ignored when `q` isn't set.
 
 The following query API is also provided on the querier service for _debugging_ purposes.
 
@@ -234,6 +238,14 @@ Other formats can be requested using the `Accept` header:
 
 - `Accept: application/protobuf` - Returns OpenTelemetry proto format
 - `Accept: application/vnd.grafana.llm` - Returns a simplified JSON format optimized for LLM consumption. This format is subject to change and shouldn't be relied on for programmatic use.
+
+When the response is a subset of the stored trace, the response includes a `status` field set to `PARTIAL` and a `message` field that explains why:
+
+- `Trace filtered, only a subset of spans matching the filter is returned` — the `q` parameter dropped spans from the response. Query again without `q` to retrieve the full trace.
+- `Trace was already pruned before it reached Tempo; this is the complete trace Tempo has stored` — the trace was pruned upstream before ingestion. Tempo has no unpruned copy to return.
+- `Trace was pruned by Tempo while serving this request; the original spans remain in storage and can be retrieved by querying again with span pruning disabled` — Tempo pruned the trace while serving this request. Query again with `span_pruning=false` to retrieve the original spans.
+
+If the trace is also partial for other reasons, for example because it exceeds the maximum trace size, `message` combines multiple explanations separated by semicolons.
 
 ### Search
 
