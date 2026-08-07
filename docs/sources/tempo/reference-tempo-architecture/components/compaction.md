@@ -4,7 +4,7 @@ menuTitle: Compaction
 description: How the backend scheduler and worker handle compaction and retention.
 weight: 700
 topicType: concept
-versionDate: 2026-03-20
+versionDate: 2026-08-07
 ---
 
 # Compaction
@@ -39,6 +39,22 @@ When a worker calls `Next`, the scheduler assigns an available job and persists 
 The worker executes the job and calls `UpdateJob` with a success or failure status.
 On success, the scheduler applies the results to the in-memory blocklist (for example, marking compacted blocks as removed).
 The work cache is periodically flushed to object storage for crash recovery.
+
+#### Redaction apply mode versus dry-run
+
+Redaction requests run in **apply** mode by default, or in **dry-run** mode when you submit with `tempo-cli redact --dry-run`.
+
+Apply-mode redaction is exclusive for the tenant:
+
+- While an apply batch is active, the scheduler disables compaction and retention for that tenant.
+- When all apply-mode redaction jobs finish (and any pending rescan completes), the batch enters a short **quiescence** window instead of being removed immediately.
+- During quiescence, compaction stays disabled so a rescan can cover blocks that compaction produced just as the last redaction job finished.
+- The quiescence deadline is `2 × backend_scheduler.maintenance_interval` (the default `maintenance_interval` is `1m`).
+- After the deadline, the scheduler removes the batch and re-enables compaction and retention.
+
+Dry-run redaction evaluates the selector and reports match counts without rewriting blocks.
+A dry-run batch still occupies the tenant's one-batch slot (a second submission is rejected while it is active), but it doesn't disable compaction or retention, enter quiescence, or arm a rescan.
+When its jobs finish, the scheduler removes the dry-run batch immediately.
 
 ## Backend scheduler
 
@@ -108,12 +124,14 @@ This endpoint is useful for diagnosing stalled jobs, verifying that workers are 
 | `tempo_backend_scheduler_jobs_failed_total` | Jobs that failed |
 | `tempo_backend_scheduler_jobs_active` | Jobs currently assigned to a worker |
 | `tempo_backend_scheduler_job_duration_seconds` | Job execution duration histogram |
+| `tempo_backend_scheduler_redaction_traces_found_total` | Traces matched by redaction jobs, labeled by `tenant` and `mode` (`apply` counts traces actually removed; `dry_run` counts the previewed match set with nothing removed) |
 | `tempodb_blocklist_length` | Number of live blocks per tenant; high values indicate compaction is falling behind |
 | `tempodb_compaction_outstanding_blocks` | Outstanding blocks awaiting compaction per tenant; the primary autoscaling signal |
 
 Most scheduler job metrics carry `tenant` and `job_type` labels; `tempo_backend_scheduler_job_duration_seconds` carries only `job_type`.
 The `job_type` label uses protobuf enum string values: `JOB_TYPE_COMPACTION`, `JOB_TYPE_RETENTION`, and `JOB_TYPE_REDACTION`.
 The duration histogram measures elapsed time from job creation to completion, not execution time alone.
+Zero-match redaction jobs don't increment `tempo_backend_scheduler_redaction_traces_found_total`.
 
 ## Monitoring
 
@@ -123,6 +141,7 @@ The Tempo mixin ships a pre-built Grafana dashboard, **Tempo - Backend Work**, t
 - Active, completed, failed, and retried job counts
 - Compaction throughput (objects written, bytes written, blocks compacted)
 - Outstanding blocks per tenant
+- Per-tenant redaction traces found for apply mode and dry-run mode (`tempo_backend_scheduler_redaction_traces_found_total`)
 - CPU and memory for both the backend scheduler and backend workers
 - A backend-worker autoscaling panel
 
