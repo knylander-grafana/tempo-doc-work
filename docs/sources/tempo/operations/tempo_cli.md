@@ -966,12 +966,15 @@ tempo-cli rewrite-blocks drop-traces --drop-trace --backend=local --bucket=./cmd
 
 Remove traces containing personally identifiable information or other sensitive data from object storage without waiting for retention to expire.
 
-The `redact` command submits a redaction request to the [backend scheduler](/docs/tempo/<TEMPO_VERSION>/reference-tempo-architecture/components/compaction/#backend-scheduler). 
-The scheduler creates jobs that rewrite affected blocks in object storage to remove the specified traces. 
+The `redact` command submits a redaction request to the [backend scheduler](/docs/tempo/<TEMPO_VERSION>/reference-tempo-architecture/components/compaction/#backend-scheduler).
+The scheduler creates jobs that rewrite affected blocks in object storage to remove the specified traces.
 Unlike [`drop-traces`](#drop-traces-by-id), which operates directly on object storage from the CLI, `redact` delegates the work to the backend scheduler over gRPC.
 
+Provide exactly one selector: one or more `--trace-id` values, or a `--query` TraceQL selector.
+Use `--dry-run` to preview how many traces match without rewriting blocks.
+
 ```bash
-tempo-cli redact --tenant=<TENANT_ID> --trace-id=<TRACE_ID> [--trace-id=<TRACE_ID> ...] <scheduler-address>
+tempo-cli redact --tenant=<TENANT_ID> (--trace-id=<TRACE_ID> [--trace-id=<TRACE_ID> ...] | --query=<TRACEQL_QUERY>) [--dry-run] <scheduler-address>
 ```
 
 Arguments:
@@ -981,7 +984,9 @@ Arguments:
 Options:
 
 - `--tenant <value>` **(required)** Tenant ID.
-- `--trace-id <value>` **(required)** Trace ID to redact, in hex format. Specify multiple times to redact several traces in one request.
+- `--trace-id <value>` Trace ID to redact, in hex format. Specify multiple times to redact several traces in one request. Mutually exclusive with `--query`.
+- `--query <value>` TraceQL query that selects traces to redact. Mutually exclusive with `--trace-id`. The query must be a single spanset filter: `=` comparisons on `resource.*` or `span.*` attributes joined by `&&` or `||`. Regex, ordered comparisons, `parent.`-scoped attributes, pipelines, aggregates, and structural operators aren't supported.
+- `--dry-run` Evaluate the selector and report match counts without rewriting any blocks. Dry-run redaction doesn't disable tenant compaction or retention, enter quiescence, or arm a rescan. Refer to [Compaction](/docs/tempo/<TEMPO_VERSION>/reference-tempo-architecture/components/compaction/#redaction-apply-mode-versus-dry-run) for apply-mode lifecycle details.
 - `--tls` Use TLS for the gRPC connection (default: `false`).
 - `--tls-server-name <value>` Override the TLS server name (SNI).
 - `--tls-ca <value>` Path to a PEM-encoded CA certificate file.
@@ -993,7 +998,10 @@ batch_id:     <BATCH_ID>
 jobs_created: <COUNT>
 ```
 
+When you use `--dry-run`, the output also includes a `mode: dry-run` line indicating that jobs report match counts without rewriting blocks.
+
 Monitor job progress through the [`/status/backendscheduler`](/docs/tempo/<TEMPO_VERSION>/api_docs/#backend-scheduler-job-status) endpoint.
+Track per-tenant match counts with `tempo_backend_scheduler_redaction_traces_found_total` (`mode=apply` or `mode=dry_run`).
 
 ### Examples
 
@@ -1007,6 +1015,18 @@ Redact multiple traces in one request:
 
 ```bash
 tempo-cli redact --tenant=my-tenant --trace-id=931281e2a09876de16e15f45ff86283d --trace-id=00000000000000000000000000000001 localhost:9095
+```
+
+Redact traces matching a TraceQL query:
+
+```bash
+tempo-cli redact --tenant=my-tenant --query='{ resource.service.name = "payments" && span.http.status_code = 500 }' localhost:9095
+```
+
+Preview matches with dry-run (no blocks rewritten):
+
+```bash
+tempo-cli redact --tenant=my-tenant --query='{ resource.service.name = "payments" }' --dry-run localhost:9095
 ```
 
 With TLS and a custom CA:
