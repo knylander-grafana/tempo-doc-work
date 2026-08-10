@@ -4,7 +4,7 @@ menuTitle: Compaction
 description: How the backend scheduler and worker handle compaction and retention.
 weight: 700
 topicType: concept
-versionDate: 2026-03-20
+versionDate: 2026-08-10
 ---
 
 # Compaction
@@ -26,6 +26,11 @@ The scheduler produces three types of jobs:
 - Retention: deletes blocks older than the configured retention period.
 - Redaction: rewrites blocks to remove matching trace data from object storage.
 
+Apply-mode redaction is an exclusive tenant operation.
+While an apply-mode batch is active or in its post-completion quiescence window, the scheduler blocks compaction and retention for that tenant and arms a rescan so rewritten blocks become queryable only after in-flight compaction jobs finish.
+Dry-run redaction scans blocks and reports match counts without rewriting data.
+It doesn't block compaction or retention, doesn't enter quiescence, and doesn't arm a rescan.
+
 ### Job lifecycle
 
 The scheduler uses providers to generate jobs.
@@ -33,7 +38,7 @@ Each provider runs independently and feeds jobs into a shared channel.
 
 - The compaction provider periodically measures tenants and produces compaction jobs based on the blocklist.
 - The retention provider produces retention jobs on a schedule.
-- The redaction provider drains a persistent queue of pending redaction requests. The scheduler's rescan logic handles waiting for any compaction jobs that were active at submission time to complete before the rewritten blocks become eligible for querying.
+- The redaction provider drains a persistent queue of pending redaction requests. For apply-mode batches, the scheduler's rescan logic waits for any compaction jobs that were active at submission time to complete before the rewritten blocks become eligible for querying.
 
 When a worker calls `Next`, the scheduler assigns an available job and persists the assignment to a local work cache.
 The worker executes the job and calls `UpdateJob` with a success or failure status.
