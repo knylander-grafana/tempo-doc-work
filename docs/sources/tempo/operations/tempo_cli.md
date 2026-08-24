@@ -95,7 +95,16 @@ Options:
 
 - `--org-id <value>` Organization ID (for use in multi-tenant setup).
 - `--header <key=value>` Extra HTTP header to send with the request. Can be specified multiple times.
-- `--v1` use v1 API (use /api/traces endpoint to fetch traces, default: /api/v2/traces).
+- `--v1` Use the v1 API (`/api/traces` endpoint). The default is the v2 API (`/api/v2/traces`).
+- `--q <value>` TraceQL spanset filter that returns only matching spans (v2 only). For example, `{ span.http.status_code = 500 }`. Mutually exclusive with `--v1`.
+- `--keep-hierarchy` Include the ancestor path from the root to each matched span (v2 only, ignored without `--q`).
+  Default = `false`
+- `--match-depth <value>` Levels of descendants to keep below each matched span (v2 only, ignored without `--q`). Use `-1` for the full subtree, `0` for matched spans only, or `n` (`n >= 1`) for `n` cumulative levels.
+  Default = `0`
+- `--ancestor-depth <value>` Levels of ancestors to keep above each matched span (v2 only, ignored without `--q` or without `--keep-hierarchy`). Use `-1` for the whole path to the root, `0` for none, or `n` (`n >= 1`) for `n` cumulative levels.
+  Default = `-1`
+
+The `--q`, `--keep-hierarchy`, `--match-depth`, and `--ancestor-depth` flags mirror the TraceByID v2 HTTP query parameters documented in the [Tempo HTTP API](/docs/tempo/<TEMPO_VERSION>/api_docs/#query-v2).
 
 Example:
 
@@ -110,6 +119,23 @@ tempo-cli query api trace-id http://tempo:3200 f1cfe82a8eef933b --header "X-TOKE
 ```
 
 Replace _`<API_TOKEN>`_ with your authentication token.
+
+Example filtering by TraceQL and keeping two levels of descendants:
+
+```bash
+tempo-cli query api trace-id http://tempo:3200 f1cfe82a8eef933b \
+  --q '{ span.http.status_code = 500 }' \
+  --match-depth 2
+```
+
+Example filtering with ancestor context:
+
+```bash
+tempo-cli query api trace-id http://tempo:3200 f1cfe82a8eef933b \
+  --q '{ span.http.status_code = 500 }' \
+  --keep-hierarchy \
+  --ancestor-depth 1
+```
 
 ### Search
 

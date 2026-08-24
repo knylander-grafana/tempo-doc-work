@@ -371,7 +371,8 @@ The `metrics` object on search responses includes read-side counters that help e
 
 - `backendReads` is the number of read operations issued against object storage.
 - `backendBytes` is the bytes read from object storage, excluding cache hits.
-- `additionalMetrics` is an open-ended map keyed by stable strings (today: `cacheHits`, `cacheMisses`, `cacheBytes`, plus row-group and page inspection counters as they are populated).
+- `additionalMetrics` is an open-ended map keyed by stable strings. Known keys include `cacheHits`, `cacheMisses`, `cacheBytes`, row-group and page inspection counters (`rowGroupsInspected`, `rowGroupsSkipped`, `pagesInspected`, `pagesSkipped`), and `engineBytes`.
+- `engineBytes` reports the encoded size of spans and attributes processed by the TraceQL engine on the query read path. It appears on search, TraceQL metrics, and trace-by-id responses when `overrides.defaults.read.engine_bytes_tracking` (or a per-tenant override) is enabled. When tracking is disabled, the key is omitted.
 
 The keys in `additionalMetrics` are stable and additive: clients should treat unknown keys as forward compatible.
 
