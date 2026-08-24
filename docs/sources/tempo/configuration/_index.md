@@ -2467,9 +2467,9 @@ overrides:
 
       # EXPERIMENTAL
       # Per-user toggle for tracking encoded attribute bytes on matched spans,
-      # reported as an additional query metric. When not set, the cluster-wide
-      # default is used.
-      [engine_bytes_tracking: <bool>]
+      # reported as an additional query metric (engineBytes in response metrics).
+      # When not set, the cluster-wide default is used.
+      [engine_bytes_tracking: <bool> | default = false]
 
       # Per-tenant override for the query-frontend's span_pruning_enabled_by_default config.
       # When set, overrides whether span pruning defaults to enabled for trace-by-id v2 requests
