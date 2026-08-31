@@ -21,6 +21,7 @@ Tempo provides various command-line flags to configure its behavior when startin
 | `--config.file` | Configuration file to load | |
 | `--config.expand-env` | Whether to expand environment variables in config file | `false` |
 | `--config.verify` | Verify configuration and exit | `false` |
+| `--config.verify-errors-only` | Fail `--config.verify` only on hard errors, not configuration warnings | `false` |
 
 ## Target flag
 
@@ -154,6 +155,13 @@ Verify configuration without starting Tempo:
 
 ```bash
 tempo --config.file=/etc/tempo/config.yaml --config.verify
+```
+
+By default, `--config.verify` exits with a non-zero status when Tempo reports configuration warnings.
+Use `--config.verify-errors-only` to fail only on hard errors and treat warnings as informational:
+
+```bash
+tempo --config.file=/etc/tempo/config.yaml --config.verify --config.verify-errors-only
 ```
 
 Print version information:
