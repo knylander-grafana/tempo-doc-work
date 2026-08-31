@@ -4,7 +4,7 @@ menuTitle: Query frontend
 description: How the query frontend shards and distributes queries.
 weight: 500
 topicType: concept
-versionDate: 2026-03-20
+versionDate: 2026-08-31
 ---
 
 # Query frontend
@@ -67,6 +67,7 @@ Refer to [Tune search performance](https://grafana.com/docs/tempo/<TEMPO_VERSION
 | Metric | Description |
 |---|---|
 | `tempo_query_frontend_queries_total` | Total queries received |
+| `tempo_query_frontend_queue_duration_seconds` | Time requests spend in the query frontend queue before dispatch to queriers, labeled by `op` (`traces`, `search`, `metrics`, `metadata`, or `unknown` when the request was not built through a pipeline). Update dashboards or recording rules that assumed an unlabeled histogram. |
 | `tempo_query_frontend_queue_length` | Current queue depth per tenant |
 
 ## Related resources
