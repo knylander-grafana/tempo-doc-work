@@ -726,6 +726,10 @@ Actual API parameters must be URL-encoded. This example is left unencoded for re
 GET /api/metrics/query_range?q={resource.service.name="myservice"} | min_over_time() with(exemplars=true) &since=3h&step=1m&exemplars=100
 ```
 
+The JSON response includes a `step` field with the resolved step interval in nanoseconds.
+When you omit the `step` request parameter, Tempo selects a step based on the time range and returns that value in the response.
+When you provide `step`, the response echoes the interval Tempo used after validation and alignment.
+
 #### Instant
 
 The instant version of the metrics API is similar to the range version, but instead returns a single value for the query.

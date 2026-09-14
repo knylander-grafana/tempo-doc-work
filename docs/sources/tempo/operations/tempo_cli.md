@@ -532,9 +532,10 @@ of dedicated columns.
 ### Convert vParquet3 to vParquet4
 
 {{< admonition type="note" >}}
-`vParquet3` is deprecated.
-Tempo 3.x still reads existing vParquet3 blocks, so you don't need to convert them before you upgrade.
-Use this command to convert remaining vParquet3 blocks to vParquet4 or later.
+`vParquet3` is deprecated and can no longer be used for writes or compaction.
+Tempo refuses to start if `storage.trace.block.version` is set to `vParquet3`.
+Existing `vParquet3` blocks remain readable, but the compactor no longer compacts them together.
+Use this command to convert remaining `vParquet3` blocks to `vParquet4` or later if you want them compacted again.
 {{< /admonition >}}
 
 ```bash

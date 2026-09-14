@@ -167,9 +167,11 @@ Tempo 3.0 is a major release that replaces the ingester-based architecture with 
 Block-builders, live-stores, and a backend scheduler replace ingesters and the compactor. For a detailed description of the new architecture, refer to the [Tempo architecture reference](/docs/tempo/<TEMPO_VERSION>/reference-tempo-architecture/).
 
 {{< admonition type="caution" >}}
-`vParquet3` is deprecated.
-Tempo 3.x still reads existing vParquet3 blocks, so you don't need to convert them.
-If your storage configuration specifies `vParquet3`, change the write format to `vParquet4` or later.
+`vParquet3` is deprecated and can no longer be used for writes or compaction.
+Tempo refuses to start if your storage configuration specifies `vParquet3`.
+Change the write format to `vParquet4` or later before upgrading.
+Existing `vParquet3` blocks remain readable, but the compactor no longer compacts them together.
+You don't need to convert them unless you want compaction to reduce block count.
 Refer to [Change the block format version](/docs/tempo/<TEMPO_VERSION>/configuration/parquet/#change-the-block-format-version).
 {{< /admonition >}}
 

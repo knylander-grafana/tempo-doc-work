@@ -32,9 +32,11 @@ Running two Tempo deployments in parallel increases infrastructure costs for the
 
 Confirm the following before you start:
 
-- `vParquet3` is deprecated.
-  Tempo 3.x still reads existing vParquet3 blocks, so you don't need to convert them before migrating.
-  If your configuration still specifies `vParquet3`, change the write format to **vParquet4 or later**.
+- `vParquet3` is deprecated and can no longer be used for writes or compaction.
+  Tempo refuses to start if your configuration still specifies `vParquet3`.
+  Change the write format to **vParquet4 or later** before migrating.
+  Existing `vParquet3` blocks remain readable, but the compactor no longer compacts them together.
+  You don't need to convert them unless you want compaction to reduce block count.
   Refer to [Change the block format version](/docs/tempo/<TEMPO_VERSION>/configuration/parquet/#change-the-block-format-version).
   Tempo 3.1 writes new blocks as vParquet5 by default.
 - **Microservices mode only**: You have a running **Kafka-compatible system** (for example, Apache Kafka or Redpanda). Monolithic mode does not require Kafka.
