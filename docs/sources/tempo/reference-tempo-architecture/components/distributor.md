@@ -4,7 +4,7 @@ menuTitle: Distributor
 description: How the distributor receives, validates, and routes trace data.
 weight: 100
 topicType: concept
-versionDate: 2026-03-20
+versionDate: 2026-09-21
 ---
 
 # Distributor
@@ -90,7 +90,14 @@ In monolithic mode, the distributor pushes trace data directly to the live-store
 | `tempo_distributor_spans_received_total` | Total spans received by the distributor |
 | `tempo_discarded_spans_total` | Spans discarded, labeled by `reason` |
 | `tempo_distributor_bytes_received_total` | Total bytes received |
+| `tempo_distributor_push_duration_seconds` | Time to process and route each push, labeled by `tenant` |
+| `tempo_distributor_push_bytes` | Decoded size of each push, labeled by `tenant` |
+| `tempo_distributor_received_traces_total` | Total traces received per push, labeled by `tenant` |
 | `rate(tempo_distributor_spans_received_total[5m])` | Current ingestion rate in spans per second, derived in PromQL from the received spans counter |
+
+The per-tenant push metrics help you isolate slow, oversized, or unusually shaped pushes to a single tenant.
+`tempo_distributor_push_bytes` records decoded push size, not wire bytes, so it does not reflect compression.
+Combine `tempo_distributor_received_traces_total` with per-tenant span counters to calculate spans per trace.
 
 ## Related resources
 
