@@ -4,7 +4,7 @@ menuTitle: Distributor
 description: How the distributor receives, validates, and routes trace data.
 weight: 100
 topicType: concept
-versionDate: 2026-03-20
+versionDate: 2026-09-21
 ---
 
 # Distributor
@@ -90,7 +90,16 @@ In monolithic mode, the distributor pushes trace data directly to the live-store
 | `tempo_distributor_spans_received_total` | Total spans received by the distributor |
 | `tempo_discarded_spans_total` | Spans discarded, labeled by `reason` |
 | `tempo_distributor_bytes_received_total` | Total bytes received |
+| `tempo_distributor_push_bytes` | Decoded size of each push, as a histogram labeled by `tenant` |
+| `tempo_distributor_received_traces_total` | Traces in batches that pass rate limits, labeled by `tenant` |
+| `tempo_distributor_push_duration_seconds` | Time to process and route one batch, labeled by `tenant` |
 | `rate(tempo_distributor_spans_received_total[5m])` | Current ingestion rate in spans per second, derived in PromQL from the received spans counter |
+
+`tempo_distributor_push_bytes` records the decoded size of a push after Tempo has a tenant ID, and before rate limits.
+`tempo_distributor_received_traces_total` counts traces in the batch, not spans.
+Tempo increments it when a batch passes rate limits and is split into traces.
+`tempo_distributor_push_duration_seconds` records the time to process and route the batch, and only when Tempo accepts the request's tenant ID.
+Pushes that fail tenant extraction don't appear in that histogram.
 
 ## Related resources
 

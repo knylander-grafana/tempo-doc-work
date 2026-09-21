@@ -49,3 +49,7 @@ If you are building your own dashboards or alerts, here are a few relevant metri
   must have this value set to 1 for the system to be working.
 - `tempodb_blocklist_tenant_index_age_seconds`
   The age of the last loaded tenant index. now() minus this value indicates how stale this components view of the blocklist is.
+- `tempodb_blocklist_tenant_index_build_duration_seconds`
+  Histogram of the time to list one tenant's blocks and write that tenant's index, labeled by `tenant`.
+  Tempo records it on the instance that builds the index, including a reader that falls back to polling the backend.
+  The timer covers that whole pass, including a failed block listing or index write.
