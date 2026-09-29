@@ -504,6 +504,73 @@ Example:
 tempo-cli view schema -c ./tempo.yaml single-tenant ca314fba-efec-4852-ba3f-8d2b0bbf69f1
 ```
 
+## View heatmap
+
+Open an interactive terminal UI that visualizes where a TraceQL query matches
+inside a vParquet5 block.
+Type a span filter or metrics query and watch two density maps update live:
+
+- **SPAN LOCATIONS** — where matching spans sit in the block by row number
+- **FILE I/O** — which byte ranges of the block file the query read
+
+Both maps resize to the current terminal.
+Row-group boundaries appear as landmarks on each map.
+Hover a cell for a tooltip with the match count, bytes read, or a row-group
+boundary label.
+For metrics queries, the tool shows matched span locations and discards the
+aggregated metrics result.
+
+```bash
+tempo-cli view heatmap [<tenant-id>] [<block-id>]
+```
+
+Arguments:
+
+- `tenant-id` The tenant ID within the bucket.
+  Optional.
+  Defaults to `$VP5_BENCH_TENANTID`, or `1` if that variable is unset.
+- `block-id` The block ID as a UUID string.
+  Optional on the command line when `$VP5_BENCH_BLOCKID` is set; otherwise required.
+
+Options:
+
+- [Backend options](#backend-options)
+
+Environment variable defaults (used only when the matching argument or option is blank):
+
+- `$VP5_BENCH_TENANTID` — tenant ID
+- `$VP5_BENCH_BLOCKID` — block ID
+- `$VP5_BENCH_PATH` — sets `--bucket` and, if `--backend` is also unset, `--backend local`
+
+These are the same variables vParquet5 benchmarks use, so a block already staged
+for `go test -bench` needs no extra arguments.
+
+Requirements and limits:
+
+- The block must be **vParquet5**.
+  Other versions exit with an error.
+- Span filters and TraceQL metrics queries (for example, `| rate()`,
+  `| count_over_time()`, `| by(...)`) are supported.
+- Structural and spanset-aggregate queries that need a full-trace evaluation
+  (for example, `{a} >> {b}` or `| count()`) aren't supported.
+- The query box starts with
+  `{resource.service.name="tempo-querier"}`.
+  Edits re-run after a short delay.
+- Press **Esc** or **Ctrl+C** to quit.
+
+Examples:
+
+```bash
+tempo-cli view heatmap -c ./tempo.yaml single-tenant ca314fba-efec-4852-ba3f-8d2b0bbf69f1
+```
+
+```bash
+export VP5_BENCH_PATH=/data/traces
+export VP5_BENCH_TENANTID=single-tenant
+export VP5_BENCH_BLOCKID=ca314fba-efec-4852-ba3f-8d2b0bbf69f1
+tempo-cli view heatmap
+```
+
 ## Benchmark profile
 
 Profile a local block for read-path benchmarking. Writes a JSON file recording
