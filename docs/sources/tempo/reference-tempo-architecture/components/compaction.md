@@ -4,7 +4,7 @@ menuTitle: Compaction
 description: How the backend scheduler and worker handle compaction and retention.
 weight: 700
 topicType: concept
-versionDate: 2026-03-20
+versionDate: 2026-09-29
 ---
 
 # Compaction
@@ -110,6 +110,7 @@ This endpoint is useful for diagnosing stalled jobs, verifying that workers are 
 | `tempo_backend_scheduler_jobs_pending` | Jobs enqueued and not yet assigned to a worker. Unlike `jobs_active`, which is bounded by the number of workers, this is queue depth and indicates whether more worker capacity is needed |
 | `tempo_backend_scheduler_job_duration_seconds` | Job execution duration histogram |
 | `tempodb_blocklist_length` | Number of live blocks per tenant; high values indicate compaction is falling behind |
+| `tempodb_blocklist_tenant_index_build_duration_seconds` | Histogram of time to build and write the tenant index, per tenant |
 | `tempodb_compaction_outstanding_blocks` | Outstanding blocks awaiting compaction per tenant; the primary autoscaling signal |
 | `tempo_backend_worker_redaction_block_missing_total` | Redaction jobs whose target block was absent from the live blocklist; a potential redaction coverage gap |
 | `tempo_backend_scheduler_redaction_traces_found_total` | Traces matched by redaction jobs, by tenant and mode; `mode=apply` counts traces actually removed, `mode=dry_run` counts previewed blast radius |
@@ -123,6 +124,7 @@ The duration histogram measures elapsed time from job creation to completion, no
 The Tempo mixin ships a pre-built Grafana dashboard, **Tempo - Backend Work**, that covers:
 
 - Blocklist length and poll duration
+- Tenant Index Build Duration (`tempodb_blocklist_tenant_index_build_duration_seconds`)
 - Active, completed, failed, and retried job counts
 - Compaction throughput (objects written, bytes written, blocks compacted)
 - Outstanding blocks per tenant
