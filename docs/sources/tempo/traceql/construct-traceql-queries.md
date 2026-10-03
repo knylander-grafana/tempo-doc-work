@@ -479,6 +479,19 @@ String values are enclosed in double quotes:
 { span.http.method = "GET" }
 ```
 
+#### Booleans
+
+Boolean literals are `true` and `false`:
+
+```
+{ span.cache.hit = true }
+{ span.feature.enabled = false }
+```
+
+When a bare attribute is an operand of `&&` or `||`,
+TraceQL treats it as `attribute = true`.
+Refer to [Bare attributes in logical expressions](#bare-attributes-in-logical-expressions).
+
 #### Nil
 
 Use `nil` to check for attributes that are missing or null  and `!= nil` to ensure an attribute is present with a non-null value. 
@@ -579,6 +592,33 @@ Both expressions require all conditions to be true on the same span.
 The entire expression inside of a pair of `{}` must be evaluated as true on a single span for it to be included in the result set.
 
 In the above example, if a span includes an `.http.method` attribute set to `DELETE` where the span also includes a `status` attribute set to `ok`, the trace would not be included in the returned results.
+
+#### Bare attributes in logical expressions
+
+When a bare attribute is an operand of `&&` or `||` inside a span selector,
+TraceQL treats it as `attribute = true`.
+These queries are equivalent:
+
+```
+{ span.cache.hit || span.http.status_code = 500 }
+{ span.cache.hit = true || span.http.status_code = 500 }
+```
+
+Use the bare form when you want a concise check for a boolean attribute that's `true`.
+A missing attribute isn't equal to `true`.
+When the other operand of `||` is true, the expression still matches:
+
+```
+{ true || span.does_not_exist }
+```
+
+That query matches spans even when `span.does_not_exist` is absent.
+With `&&`, both sides must still be true.
+If the bare attribute is missing, the expression doesn't match:
+
+```
+{ true && span.does_not_exist }
+```
 
 ## Combine spansets using operators
 
