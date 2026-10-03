@@ -71,6 +71,35 @@ sum(rate(tempodb_cache_requests_total{role="parquet-page"}[5m]))
 A persistently low hit ratio on a high-volume role (commonly `parquet-page`) is a signal to size up that cache pool or split it onto a dedicated cache instance.
 Pair the request counter with `tempodb_cache_request_bytes_total` to see whether misses are dominated by many small lookups or by a few large ones.
 
+## Limit how often Tempo writes to the cache
+
+When a high-volume cache role writes more items than the cache can hold,
+entries that aren't reused can displace items that help queries.
+Set `store_probability` on a cache instance under `cache.caches` to forward only a fraction of store attempts to the cache backend.
+Cache reads aren't affected.
+
+The default is `1`, which stores every write.
+Valid values range from `0` to `1`, inclusive.
+Set the value to `0` to skip all stores, or to a fraction such as `0.25` to store about one in four writes.
+
+Because Tempo decides whether to store on each write attempt,
+keys that Tempo tries to store often have more chances to land in the cache.
+Keys written rarely are less likely to consume capacity.
+
+For example, store about 25% of writes for a dedicated `parquet-page` cache:
+
+```yaml
+cache:
+  caches:
+    - roles:
+        - parquet-page
+      store_probability: 0.25
+      memcached:
+        host: memcached
+```
+
+For the full parameter description, refer to the [Cache](../configuration/#cache) section of the Tempo configuration reference.
+
 ## Memcached
 
 Memcached is used by default in the Tanka and Helm examples.
