@@ -118,7 +118,7 @@ When that happens, eviction rates on the cache grow high, and hit rate drop.
 
 Tempo provides two configuration parameters to filter down on the items stored in cache.
 
-```
+```yaml
         # Min compaction level of block to qualify for caching bloom filter
         # Example: "cache_min_compaction_level: 2"
         [cache_min_compaction_level: <int>]
@@ -137,3 +137,22 @@ prints a summary of bloom filter shards per day and per compaction level. The ou
 ![Cache summary output](/media/docs/tempo/cache-summary.png)
 
 This image shows the bloom filter shards over 14 days and 6 compaction levels. This can be used to decide the configuration parameters.
+
+### Probabilistic admission
+
+You can configure a cache instance to selectively store items based on a probability fraction using `store_probability`. When set to a value less than 1, Tempo randomly drops some store requests before they reach the external cache. Cache reads are unaffected.
+
+A hot key is usually read and written multiple times, so it is eventually cached even if some store requests are skipped. A cold key is rarely accessed, so skipping its store requests reduces the amount of data stored in the cache with little sacrifice to hot key performance.
+
+To configure this, set `store_probability` to a value between `0` and `1`. The default is `1` (skip no stores). For example, a value of `0.25` means that each store request has a 25% chance of being cached.
+
+```yaml
+cache:
+  caches:
+    - roles:
+        - parquet-page
+      store_probability: 0.25
+      memcached:
+        host: memcached.example.com
+```
+

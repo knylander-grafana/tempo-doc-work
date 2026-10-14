@@ -479,6 +479,17 @@ String values are enclosed in double quotes:
 { span.http.method = "GET" }
 ```
 
+#### Booleans
+
+TraceQL supports the boolean literal values `true` and `false`. You can compare an attribute to a boolean value:
+
+```
+{ span.cache.hit = true }
+{ span.is_retry = false }
+```
+
+When you use a bare attribute as an operand in a logical operator (`&&` or `||`) within a field expression, TraceQL automatically evaluates it as a boolean. For example, `{ .cache.hit || .is_retry }` is equivalent to `{ .cache.hit = true || .is_retry = true }`. If an attribute is missing, it evaluates to `false` in this context, rather than causing the whole expression to fail. Therefore, a query like `{ status = error || .optional_attr }` correctly matches all error spans, even if `.optional_attr` doesn't exist on some of them.
+
 #### Nil
 
 Use `nil` to check for attributes that are missing or null  and `!= nil` to ensure an attribute is present with a non-null value. 
