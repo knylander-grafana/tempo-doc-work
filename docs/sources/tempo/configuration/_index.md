@@ -604,6 +604,9 @@ block_builder:
     # Write ahead log configuration for the block builder.
     wal: <WAL config>
       [path: <string> | default = "/var/tempo/block-builder/traces"]
+
+      # Overrides the generic WAL default of 2m to better handle long-running spans.
+      [ingestion_time_range_slack: <duration> | default = 2h]
 ```
 
 ## Live-store
@@ -1348,6 +1351,10 @@ querier:
 
     # Partition ring configuration for distributing queries across live-stores.
     partition_ring:
+        # Limits how long INACTIVE partitions remain eligible for reads.
+        # Zero disables filtering. Set it shorter than the live-store downscale delay.
+        [read_lookback_period: <duration> | default = 0s]
+
         # When enabled, the querier minimizes the number of live-store requests
         # by preferring a single zone per partition.
         [minimize_requests: <bool> | default = true]
