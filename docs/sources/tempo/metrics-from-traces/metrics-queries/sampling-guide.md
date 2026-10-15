@@ -33,9 +33,9 @@ Refer to the [TraceQL metrics documentation](https://grafana.com/docs/tempo/<TEM
 There are four sampling methods available:
 
 - Dynamic sampling using `with(sample=true)`, which automatically determines the optimal sampling strategy based on query characteristics.
-- Fixed span sampling using `with(span_sample=0.xx)`, which selects the specified percentage of spans.
-- Fixed trace sampling using `with(trace_sample=0.xx)`, which selects complete traces for analysis.
-- Fixed probabilistic sampling using `with(sample=0.xx)`.
+- Fixed span sampling using `with(span_sample=0.xx)`, which selects the specified percentage of spans. Values outside the `(0, 1)` range are ignored and sample everything.
+- Fixed trace sampling using `with(trace_sample=0.xx)`, which selects complete traces for analysis. Values outside the `(0, 1)` range are ignored and sample everything.
+- Fixed probabilistic sampling using `with(sample=0.xx)`. Values outside the `(0, 1)` range are ignored and sample everything.
 
 ### How dynamic sampling works
 
@@ -73,7 +73,7 @@ The goal is for `with(sample=true)` to be safe to include in virtually any query
 
 ## Fixed span sampling using `with(span_sample=0.xx)`
 
-Fixed span sampling selects the specified percentage of spans.
+Fixed span sampling selects the specified percentage of spans. Values outside the `(0, 1)` range are ignored and all spans are sampled.
 
 ```traceql
 { status=error } | rate() by (resource.service.name) with(span_sample=0.1)
@@ -85,7 +85,7 @@ Fixed span sampling selects the specified percentage of spans.
 
 ## Fixed trace sampling using `with(trace_sample=0.xx)`
 
-Fixed trace sampling selects complete traces for analysis, preserving trace context and relationships between spans within the same request flow.
+Fixed trace sampling selects complete traces for analysis, preserving trace context and relationships between spans within the same request flow. Values outside the `(0, 1)` range are ignored and all traces are sampled.
 
 ```traceql
 { } >> { status=error }  | rate() by (resource.service.name) with(trace_sample=0.1)

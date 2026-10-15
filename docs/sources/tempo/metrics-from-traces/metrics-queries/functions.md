@@ -523,9 +523,9 @@ TraceQL metrics queries support sampling to optimize performance and control sam
 There are four sampling methods available:
 
 - Dynamic sampling using `with(sample=true)`, which automatically determines the optimal sampling strategy and amount based on query characteristics.
-- Fixed sampling using `with(sample=0.xx)`
-- Fixed span sampling using `with(span_sample=0.xx)`, which selects the specified percentage of spans.
-- Fixed trace sampling using `with(trace_sample=0.xx)`, which selects complete traces for analysis.
+- Fixed sampling using `with(sample=0.xx)`, which selects a fixed percentage. Values outside the `(0, 1)` range are ignored and sample everything.
+- Fixed span sampling using `with(span_sample=0.xx)`, which selects the specified percentage of spans. Values outside the `(0, 1)` range are ignored and sample everything.
+- Fixed trace sampling using `with(trace_sample=0.xx)`, which selects complete traces for analysis. Values outside the `(0, 1)` range are ignored and sample everything.
 
 Refer to the [TraceQL metrics sampling](/docs/tempo/<TEMPO_VERSION>/metrics-from-traces/metrics-queries/sampling-guide/) documentation for more information.
 

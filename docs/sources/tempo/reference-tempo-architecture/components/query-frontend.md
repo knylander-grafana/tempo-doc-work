@@ -68,6 +68,7 @@ Refer to [Tune search performance](https://grafana.com/docs/tempo/<TEMPO_VERSION
 |---|---|
 | `tempo_query_frontend_queries_total` | Total queries received |
 | `tempo_query_frontend_queue_length` | Current queue depth per tenant |
+| `tempo_query_frontend_inflight_jobs` | Number of jobs queued or executing on queriers, per user and op |
 
 ## Related resources
 

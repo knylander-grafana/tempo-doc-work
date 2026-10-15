@@ -406,6 +406,7 @@ _config+:: {
       min_replicas: 3,
       max_replicas: 200,
       threshold: 200,
+      // jobs_in_flight: { enabled: true, jobs_per_worker: 1 }, // Optional: scale on scheduler jobs in flight
     },
   },
   live_store+: {
@@ -435,6 +436,8 @@ _config+:: {
 ```
 
 Tempo uses these trigger types when KEDA is enabled: CPU for distributor, CPU or Prometheus for metrics-generator, and Prometheus for backend-worker and live-store.
+
+The backend-worker scales on outstanding compaction blocks by default. To also scale on the number of scheduler jobs in flight (active plus pending), set `_config.backend_worker.keda.jobs_in_flight.enabled` to `true`. This creates an additional Prometheus trigger that requests enough workers to handle all jobs based on `jobs_in_flight.jobs_per_worker`.
 
 By default, the metrics-generator scales on CPU using `target_cpu`.
 To scale on a custom signal instead, set `_config.metrics_generator.keda.query` to a PromQL query.

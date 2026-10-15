@@ -38,6 +38,10 @@ If you are building your own dashboards or alerts, here are a few relevant metri
 
 - `tempodb_blocklist_poll_errors_total`
   A holistic metric that increments for any error with polling the blocklist. Any increase in this metric should be reviewed.
+- `tempodb_blocklist_corrupt_block_meta_total`
+  Total number of block metas skipped during polling because they could not be decoded.
+- `tempodb_backend_bloom_shards_total`
+  Total number of bloom filter shards in the backend.
 - `tempodb_blocklist_poll_duration_seconds`
   Histogram recording the length of time in seconds to poll the entire blocklist.
 - `tempodb_blocklist_length`
