@@ -45,6 +45,38 @@ If your storage configuration specifies `vParquet3`, change the block version to
 
 Refer to [Apache Parquet block format](/docs/tempo/<TEMPO_VERSION>/configuration/parquet/) for version details.
 
+### Trace by ID block selection moves to the query-frontend
+
+Tempo 3.2 moves block selection for trace by ID lookups from queriers to the query-frontend.
+The query-frontend chooses the blocks for each shard, including recently compacted blocks within `2 * storage.trace.blocklist_poll`, and attaches that list to each querier job.
+Queriers then search the blocks the query-frontend sent instead of choosing blocks from their own polled blocklist.
+[[PR 8003](https://github.com/grafana/tempo/pull/8003)]
+
+`querier.blocklist_polling` defaults to `true`, so upgraded clusters keep the previous querier polling behavior until you change the setting.
+After every query-frontend and querier runs a build that includes this change, set `querier.blocklist_polling: false` on querier targets in microservices mode.
+That stops querier blocklist polling, reduces object-storage list traffic from queriers, and frees querier memory and CPU that polling used.
+
+{{< admonition type="caution" >}}
+Don't add `querier.blocklist_polling` to your configuration until all query-frontends and queriers are on a version that recognizes the setting.
+Older Tempo versions fail to start when they see an unknown configuration field.
+With `blocklist_polling: false`, a querier rejects trace by ID jobs that don't include blocks, for example jobs from an older query-frontend.
+{{< /admonition >}}
+
+In microservices mode, apply the setting on querier targets after the rolling upgrade finishes:
+
+```yaml
+querier:
+  blocklist_polling: false
+```
+
+In monolithic mode, the querier path doesn't poll the blocklist; the backend worker maintains it.
+You don't need this setting for a single-binary upgrade.
+
+If the query-frontend logs that a batch of requests exceeds the gRPC send limit after the upgrade, lower `query_frontend.max_batch_size` or `query_frontend.trace_by_id.blocks_per_shard`, or raise `server.grpc_server_max_send_msg_size`.
+Jobs now carry block metadata, so payloads can be larger than before.
+
+Refer to the [querier](/docs/tempo/<TEMPO_VERSION>/configuration/#querier) and [query-frontend](/docs/tempo/<TEMPO_VERSION>/configuration/#query-frontend) configuration for the related options, and to the [Querier](/docs/tempo/<TEMPO_VERSION>/reference-tempo-architecture/components/querier/) and [Query frontend](/docs/tempo/<TEMPO_VERSION>/reference-tempo-architecture/components/query-frontend/) architecture pages for how block selection works.
+
 ## Upgrade to Tempo 3.1
 
 ### Default block format is now vParquet5

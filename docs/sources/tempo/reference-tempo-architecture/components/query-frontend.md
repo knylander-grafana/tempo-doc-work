@@ -4,7 +4,7 @@ menuTitle: Query frontend
 description: How the query frontend shards and distributes queries.
 weight: 500
 topicType: concept
-versionDate: 2026-03-20
+versionDate: 2026-10-19
 ---
 
 # Query frontend
@@ -21,6 +21,15 @@ Jobs are placed in a per-tenant queue and dispatched to queriers in batches, red
 As queriers return partial results, the frontend merges and deduplicates them into a final response.
 If a querier fails to process a job, the frontend retries it on another querier.
 For search queries with a result limit, the frontend cancels remaining jobs as soon as enough results are collected.
+
+### Trace by ID block selection
+
+For trace by ID lookups, the query frontend selects the blocks to search from its view of the tenant blocklist, including recently compacted blocks within `2 * storage.trace.blocklist_poll`.
+It sizes shards from that block set (for example with `query_frontend.trace_by_id.blocks_per_shard`) and attaches the blocks for each shard to the querier job.
+
+Queriers then search the blocks the query frontend sent.
+After every query frontend and querier runs a build that supports job blocks, you can set `querier.blocklist_polling: false` so queriers stop polling a blocklist of their own.
+Refer to [Upgrade your Tempo installation](/docs/tempo/<TEMPO_VERSION>/set-up-for-tracing/setup-tempo/upgrade/#trace-by-id-block-selection-moves-to-the-query-frontend) for the rollout order.
 
 ## Job sharding
 
@@ -60,7 +69,7 @@ query_frontend:
     target_bytes_per_job: 104857600 # ~100MB per job
 ```
 
-Refer to [Tune search performance](https://grafana.com/docs/tempo/<TEMPO_VERSION>/operations/backend_search/) for detailed tuning guidance.
+Refer to [Tune search performance](/docs/tempo/<TEMPO_VERSION>/operations/backend_search/) for detailed tuning guidance.
 
 ## Key metrics
 
@@ -71,4 +80,4 @@ Refer to [Tune search performance](https://grafana.com/docs/tempo/<TEMPO_VERSION
 
 ## Related resources
 
-Refer to the [query-frontend configuration](https://grafana.com/docs/tempo/<TEMPO_VERSION>/configuration/#query-frontend) for the full list of options.
+Refer to the [query-frontend configuration](/docs/tempo/<TEMPO_VERSION>/configuration/#query-frontend) for the full list of options.
