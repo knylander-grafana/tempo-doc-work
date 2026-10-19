@@ -37,6 +37,10 @@ There are four sampling methods available:
 - Fixed trace sampling using `with(trace_sample=0.xx)`, which selects complete traces for analysis.
 - Fixed probabilistic sampling using `with(sample=0.xx)`.
 
+For fixed ratios, use a value greater than `0` and less than `1`.
+Tempo ignores `sample`, `span_sample`, and `trace_sample` ratio hints outside that range, including `0` and `1`.
+When a ratio hint is ignored, the query runs without that sampling hint.
+
 ### How dynamic sampling works
 
 Dynamic sampling, `with(sample=true)`, applies probabilistic sampling at the storage layer.
@@ -74,6 +78,8 @@ The goal is for `with(sample=true)` to be safe to include in virtually any query
 ## Fixed span sampling using `with(span_sample=0.xx)`
 
 Fixed span sampling selects the specified percentage of spans.
+The ratio must be greater than `0` and less than `1`.
+Values such as `0`, `1`, or `2` are ignored.
 
 ```traceql
 { status=error } | rate() by (resource.service.name) with(span_sample=0.1)
@@ -86,6 +92,8 @@ Fixed span sampling selects the specified percentage of spans.
 ## Fixed trace sampling using `with(trace_sample=0.xx)`
 
 Fixed trace sampling selects complete traces for analysis, preserving trace context and relationships between spans within the same request flow.
+The ratio must be greater than `0` and less than `1`.
+Values such as `0`, `1`, or `2` are ignored.
 
 ```traceql
 { } >> { status=error }  | rate() by (resource.service.name) with(trace_sample=0.1)

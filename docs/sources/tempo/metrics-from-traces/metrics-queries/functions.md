@@ -527,6 +527,9 @@ There are four sampling methods available:
 - Fixed span sampling using `with(span_sample=0.xx)`, which selects the specified percentage of spans.
 - Fixed trace sampling using `with(trace_sample=0.xx)`, which selects complete traces for analysis.
 
+Fixed ratio hints (`sample`, `span_sample`, and `trace_sample` as numbers) must be greater than `0` and less than `1`.
+Tempo ignores ratios outside that range, including `0` and `1`, and runs the query without that sampling hint.
+
 Refer to the [TraceQL metrics sampling](/docs/tempo/<TEMPO_VERSION>/metrics-from-traces/metrics-queries/sampling-guide/) documentation for more information.
 
 {{< admonition  type="note" >}}
@@ -544,6 +547,7 @@ Automatically determines optimal sampling strategy based on query selectivity an
 ### Fixed span sampling: `with(span_sample=0.xx)`
 
 Samples a fixed percentage of spans for span-level aggregations.
+Use a ratio greater than `0` and less than `1`.
 
 ```
 { span:status=error } | count_over_time() with(span_sample=0.1)
@@ -552,6 +556,7 @@ Samples a fixed percentage of spans for span-level aggregations.
 ### Fixed trace sampling: `with(trace_sample=0.xx)`
 
 Samples a fixed percentage of traces for trace-level aggregations.
+Use a ratio greater than `0` and less than `1`.
 
 ```
 { } | count_over_time() by (resource.service.name) with(trace_sample=0.05)

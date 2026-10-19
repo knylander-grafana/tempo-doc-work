@@ -481,11 +481,27 @@ String values are enclosed in double quotes:
 
 #### Nil
 
-Use `nil` to check for attributes that are missing or null  and `!= nil` to ensure an attribute is present with a non-null value. 
+Use `nil` to check for attributes that are missing or null,
+and `!= nil` to ensure an attribute is present with a non-null value.
 
 ```
 { span.optional_field = nil }
 { span.required_field != nil }
+```
+
+A missing attribute isn't an empty string or a zero value.
+Value comparisons such as `=`, `!=`, ranges, and substring matches
+apply only when the attribute is present.
+They don't match spans that omit the attribute.
+To select missing attributes, compare with `nil`.
+
+For example, these queries match only spans that have `span.http.method`.
+Spans without that attribute aren't included,
+even when the comparison is `!=` or when one branch compares to an empty string:
+
+```
+{ span.http.method != "GET" && span.http.method != "POST" }
+{ span.http.method = "GET" || span.http.method = "" }
 ```
 
 ### Comparison operators
