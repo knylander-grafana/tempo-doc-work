@@ -432,7 +432,7 @@ To determine if edges are being dropped due to this limit, check:
 sum(rate(tempo_metrics_generator_processor_service_graphs_dropped_spans{}[1m]))
 ```
 
-Use `max_items` to adjust the maximum amount of edges tracked:
+Use `max_items` to adjust the maximum amount of edges tracked. The value must be greater than 0.
 
 This can be set using the metrics_generator global configuration:
 
