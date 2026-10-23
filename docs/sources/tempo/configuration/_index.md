@@ -769,7 +769,7 @@ metrics_generator:
             # Wait is the value to wait for an edge to be completed.
             [wait: <duration> | default = 10s]
 
-            # MaxItems is the amount of edges that will be stored in the store.
+            # MaxItems is the amount of edges that will be stored in the store. Must be greater than 0.
             [max_items: <int> | default = 10000]
 
             # Workers is the amount of workers that will be used to process the edges
@@ -2638,6 +2638,7 @@ overrides:
 
         # Configuration for the service-graphs processor
         service_graphs:
+          # Must be greater than 0.
           [max_items: <int>]
           [histogram_buckets: <list of float>]
           [dimensions: <list of string>]

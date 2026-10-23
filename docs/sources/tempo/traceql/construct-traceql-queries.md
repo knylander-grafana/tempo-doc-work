@@ -492,6 +492,10 @@ Use `nil` to check for attributes that are missing or null  and `!= nil` to ensu
 
 Comparison operators are used to test values within an expression.
 
+{{< admonition type="note" >}}
+Comparison operators do not match missing attributes. For example, if a span does not have a `span.foo` attribute, neither `{ span.foo != "a" }` nor `{ span.foo = "" }` match the span. To check for missing attributes, use `nil` (for example, `{ span.foo = nil }`).
+{{< /admonition >}}
+
 The implemented comparison operators are:
 
 - `=` (equality)
