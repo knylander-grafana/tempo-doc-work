@@ -126,6 +126,12 @@ Refer to [Tune search performance](https://grafana.com/docs/tempo/<TEMPO_VERSION
 |---|---|
 | `tempo_query_frontend_queries_total` | Total queries received |
 | `tempo_query_frontend_queue_length` | Current queue depth per tenant |
+| `tempo_query_frontend_inflight_jobs` | Jobs queued or executing on queriers, labeled by tenant (`user`) and query type (`op`) |
+
+Unlike `tempo_query_frontend_queue_length`, which drops to zero whenever queriers keep up,
+`tempo_query_frontend_inflight_jobs` counts both queued and executing jobs,
+so it holds steady under sustained load.
+This makes it a useful signal for querier autoscaling.
 
 ## Related resources
 

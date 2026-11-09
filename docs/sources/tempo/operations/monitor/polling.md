@@ -38,6 +38,15 @@ one to build the index and one to read it.
 Poll duration and failures add to this delay,
 so twice `blocklist_poll` is not a guaranteed freshness bound when polling falls behind.
 
+If a block's `meta.json` can't be decoded during a poll,
+Tempo skips that block and continues building the tenant's blocklist
+instead of failing the whole poll.
+This stops one corrupt block from hiding the rest of a tenant's blocks.
+A full filesystem or an unclean shutdown can corrupt a block meta.
+If every block in a tenant is skipped, Tempo fails the poll for that tenant intentionally,
+so the tenant isn't treated as empty and its tenant index isn't deleted.
+Each skipped block increments `tempodb_blocklist_corrupt_block_meta_total`.
+
 {{< admonition type="note" >}}
 For details about configuring polling, refer to [polling configuration](../../../configuration/polling/).
 For request budgeting, concurrency controls, and startup considerations with many tenants,
@@ -59,6 +68,8 @@ If you are building your own dashboards or alerts, here are a few relevant metri
   A cycle that fails before applying its results isn't recorded in this histogram.
 - `tempodb_blocklist_length`
   Total blocks as seen by this component.
+- `tempodb_blocklist_corrupt_block_meta_total`
+  A per-tenant counter that increments each time a block is skipped during a poll because its `meta.json` couldn't be decoded. Any increase in this metric should be reviewed.
 - `tempodb_blocklist_tenant_index_errors_total`
   A holistic metric that increments for any error building the tenant index. Any increase in this metric should be reviewed.
 - `tempodb_blocklist_tenant_index_builder`

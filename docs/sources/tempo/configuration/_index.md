@@ -1384,6 +1384,11 @@ querier:
 
     # Partition ring configuration for distributing queries across live-stores.
     partition_ring:
+        # How long to keep querying INACTIVE live-store partitions after they
+        # become read-only. Set this shorter than the live-store downscale delay.
+        # 0 disables partition filtering, so all partitions remain eligible for reads.
+        [read_lookback_period: <duration> | default = 0s]
+
         # When enabled, the querier minimizes the number of live-store requests
         # by preferring a single zone per partition.
         [minimize_requests: <bool> | default = true]

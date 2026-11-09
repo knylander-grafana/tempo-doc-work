@@ -812,6 +812,36 @@ Example:
 tempo-cli parquet convert-4to5 ./block-in ./block-out "span.http.method" "int/span.http.status_code" "blob/span.db.statement"
 ```
 
+## Parquet rewrite command
+
+Rewrites an existing Parquet block using the encoding detected from the block's `meta.json`, and optionally a new list of dedicated columns.
+Block parameters that you don't pass on the command line are inherited from the input block,
+so a rewrite without optional arguments reproduces the original block as closely as possible.
+
+This utility command is useful when testing the impact of encoding, compression, row group size, bloom filter, or dedicated column changes.
+
+```bash
+tempo-cli parquet rewrite <in file> [<out path>] [<list of dedicated columns>]
+```
+
+Arguments:
+
+- `in file` Path to an existing Parquet block directory to read from.
+- `out path` Path to write the rewritten block to. The default is `./out`.
+- `list of dedicated columns` Optional list of columns to make dedicated. This overwrites the existing dedicated columns. Columns use TraceQL syntax with scope. For example, `span.http.method`, `resource.namespace`, `event.exception.message`.
+
+Options:
+
+- `--row-group-size-bytes` Target row group size in bytes. When unset, the command uses the 100 MB Tempo default and prints a warning.
+- `--bloom-fp` Bloom filter false positive rate. When unset, the command inherits the input block's rate.
+- `--bloom-shard-size-bytes` Bloom filter shard size in bytes. When unset, the command inherits the input block's shard size.
+
+Example:
+
+```bash
+tempo-cli parquet rewrite ./block-in ./block-out --row-group-size-bytes 104857600 --bloom-fp 0.01
+```
+
 ## Migrate tenant command
 
 Copy blocks from one backend and tenant to another. Blocks can be copied within the same backend or between two
@@ -899,8 +929,8 @@ tempo-cli migrate overrides-per-tenant overrides.yaml -d migrated-overrides.yaml
 
 Migrate a Tempo 2.x configuration file to a valid 3.0 configuration. The command removes obsolete configuration sections (such as `ingester`, `ingester_client`, and `compactor`), adds Kafka ingest configuration for microservices mode, disables compaction in overrides for parallel operation during migration, and strips the removed `local-blocks` metrics-generator processor.
 
-The tool works at the YAML map level rather than rewriting the file from fully decoded Tempo structs, so environment variable references like `${VAR}` are preserved. 
-Top-level sections that are not recognized by the Tempo 3.0 configuration are dropped from the output. 
+The tool works at the YAML map level rather than rewriting the file from fully decoded Tempo structs, so environment variable references like `${VAR}` are preserved.
+Top-level sections that are not recognized by the Tempo 3.0 configuration are dropped from the output.
 Unknown nested keys normally cause validation to fail, but validation is best-effort when the configuration contains `${VAR}` placeholders where non-string types are expected, which may let unknown nested keys through.
 
 ```bash
@@ -1215,8 +1245,8 @@ If you redact by query, confirm in Grafana Explore that the query selects the ri
 Explore shows only a sample; redaction removes every matching trace across the tenant.
 {{< /admonition >}}
 
-The `redact` command submits a redaction request to the [backend scheduler](/docs/tempo/<TEMPO_VERSION>/reference-tempo-architecture/components/compaction/#backend-scheduler). 
-The scheduler creates jobs that rewrite affected blocks in object storage to remove the specified traces. 
+The `redact` command submits a redaction request to the [backend scheduler](/docs/tempo/<TEMPO_VERSION>/reference-tempo-architecture/components/compaction/#backend-scheduler).
+The scheduler creates jobs that rewrite affected blocks in object storage to remove the specified traces.
 Unlike [`drop-traces`](#drop-traces-by-id), which operates directly on object storage from the CLI, `redact` delegates the work to the backend scheduler over gRPC.
 
 ```bash
